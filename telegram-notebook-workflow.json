@@ -1,0 +1,975 @@
+{
+  "name": "Telegram AI Notebook Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "channel_post"
+        ]
+      },
+      "id": "telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIALS_ID",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "link-condition",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "https?://",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Link"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "photo-condition",
+                    "leftValue": "={{ $json.message.photo }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "array",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "voice-condition",
+                    "leftValue": "={{ $json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Voice Note"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "video-condition",
+                    "leftValue": "={{ $json.message.video }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Video"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "document-condition",
+                    "leftValue": "={{ $json.message.document }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Document"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "audio-condition",
+                    "leftValue": "={{ $json.message.audio }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputLabel": "Audio"
+            }
+          ],
+          "fallbackOutput": {
+            "renameOutput": true,
+            "outputLabel": "Text Message"
+          }
+        }
+      },
+      "id": "content-router",
+      "name": "Route Content Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-content",
+      "name": "Merge All Content",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "content-type",
+              "name": "contentType",
+              "value": "={{ $('Route Content Type').first().json.outputLabel || 'text' }}",
+              "type": "string"
+            },
+            {
+              "id": "raw-text",
+              "name": "rawText",
+              "value": "={{ $json.message.text || $json.message.caption || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "has-media",
+              "name": "hasMedia",
+              "value": "={{ $json.message.photo || $json.message.voice || $json.message.video || $json.message.document || $json.message.audio ? true : false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "chat-id",
+              "name": "chatId",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            },
+            {
+              "id": "message-id",
+              "name": "messageId",
+              "value": "={{ $json.message.message_id }}",
+              "type": "number"
+            },
+            {
+              "id": "sender-name",
+              "name": "senderName",
+              "value": "={{ $json.message.from.first_name + ' ' + ($json.message.from.last_name || '') }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp",
+              "name": "timestamp",
+              "value": "={{ new Date($json.message.date * 1000).toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-context",
+      "name": "Prepare Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "voice-check",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-voice",
+      "name": "Has Voice Note?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}"
+      },
+      "id": "get-voice-file",
+      "name": "Get Voice File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1100, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIALS_ID",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "id": "transcribe-voice",
+      "name": "Transcribe Voice (Whisper)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.5,
+      "position": [1320, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIALS_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-transcription",
+      "name": "Merge Transcription",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "final-text",
+              "name": "processedText",
+              "value": "={{ $('Transcribe Voice (Whisper)').first()?.json.text || $('Prepare Context').first().json.rawText || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-processed-text",
+      "name": "Set Processed Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1760, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "query",
+        "databaseId": "={{ $credentials.notionDatabaseId || 'YOUR_NOTEBOOK_DATABASE_ID' }}",
+        "filterType": "none",
+        "returnAll": false,
+        "limit": 1
+      },
+      "id": "get-database-schema",
+      "name": "Get Notebook Schema",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1980, 200],
+      "credentials": {
+        "notionApi": {
+          "id": "NOTION_CREDENTIALS_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "getAll",
+        "databaseId": "={{ $credentials.notionDatabaseId || 'YOUR_NOTEBOOK_DATABASE_ID' }}",
+        "returnAll": true,
+        "filterType": "none"
+      },
+      "id": "get-existing-tags",
+      "name": "Get Existing Tags/Categories",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1980, 400],
+      "credentials": {
+        "notionApi": {
+          "id": "NOTION_CREDENTIALS_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "existing-categories",
+              "name": "existingCategories",
+              "value": "={{ [...new Set($('Get Existing Tags/Categories').all().map(item => item.json.properties?.Category?.select?.name).filter(Boolean))] }}",
+              "type": "string"
+            },
+            {
+              "id": "existing-tags",
+              "name": "existingTags",
+              "value": "={{ [...new Set($('Get Existing Tags/Categories').all().flatMap(item => item.json.properties?.Tags?.multi_select?.map(t => t.name) || []).filter(Boolean))] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract-taxonomy",
+      "name": "Extract Existing Taxonomy",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2200, 300]
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "You are an intelligent notebook assistant that processes incoming content from Telegram and creates organized entries for a Notion database called \"Notebook\".\n\n## Current Content to Process:\n- **Content Type**: {{ $('Prepare Context').first().json.contentType }}\n- **Text/Transcription**: {{ $('Set Processed Text').first().json.processedText }}\n- **Has Media**: {{ $('Prepare Context').first().json.hasMedia }}\n- **Timestamp**: {{ $('Prepare Context').first().json.timestamp }}\n- **Sender**: {{ $('Prepare Context').first().json.senderName }}\n\n## Existing Taxonomy (use these when applicable):\n- **Available Categories**: {{ $json.existingCategories }}\n- **Available Tags**: {{ $json.existingTags }}\n\n## Your Task:\nAnalyze the incoming content and determine the following:\n\n1. **Title**: Create a concise, descriptive title for this entry\n   - For links: Extract or generate a meaningful name for the resource\n   - For voice notes: Summarize the main topic\n   - For images/videos: Describe the content or use caption if provided\n   - For text: Create a summary title\n\n2. **URL**: Extract any URLs from the content (if applicable)\n\n3. **Category**: Select the most appropriate category from existing ones, or suggest a new one if none fit:\n   - Use existing categories when possible: {{ $json.existingCategories }}\n   - Common categories: Articles, Resources, Ideas, Tasks, Notes, Projects, References, Learning, Entertainment, Work, Personal\n\n4. **Tags**: Select relevant tags and/or create new ones:\n   - Use existing tags when applicable: {{ $json.existingTags }}\n   - Create new specific tags if needed\n   - Limit to 3-5 most relevant tags\n\n5. **Description**: Generate a helpful description:\n   - For links: Summarize what the resource is about\n   - For notes: Expand on the key points\n   - For media: Describe the content and context\n   - Keep it concise but informative (2-3 sentences)\n\n6. **Is Task**: Determine if this is a task/to-do item:\n   - Look for action words: \"need to\", \"should\", \"must\", \"todo\", \"reminder\", etc.\n   - Check if there's an implicit action required\n   - Return true or false\n\n7. **Due Date**: Extract due date if mentioned:\n   - Look for date references: \"by Friday\", \"next week\", \"tomorrow\", \"Dec 25\", etc.\n   - Convert to ISO format (YYYY-MM-DD)\n   - Return null if no due date mentioned\n\n8. **Priority**: If it's a task, determine priority:\n   - High: Urgent language, soon due dates\n   - Medium: Standard importance\n   - Low: Nice-to-have items\n\nRespond with a JSON object containing all these fields. Be intelligent about understanding context and intent.",
+        "options": {
+          "systemMessage": "You are a precise and intelligent content analyzer. Your job is to process various types of content (links, text, voice transcriptions, media descriptions) and extract/generate structured metadata for a Notion database.\n\nAlways respond with valid JSON in this exact format:\n{\n  \"title\": \"string\",\n  \"url\": \"string or null\",\n  \"category\": \"string\",\n  \"tags\": [\"array\", \"of\", \"strings\"],\n  \"description\": \"string\",\n  \"isTask\": boolean,\n  \"dueDate\": \"YYYY-MM-DD or null\",\n  \"priority\": \"High/Medium/Low or null\"\n}\n\nBe smart about:\n- Detecting the main topic and intent\n- Extracting URLs from text\n- Understanding implicit tasks\n- Parsing dates in various formats\n- Creating meaningful titles and descriptions\n- Selecting appropriate categories and tags",
+          "maxIterations": 5
+        }
+      },
+      "id": "ai-agent",
+      "name": "AI Content Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [2420, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIALS_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI GPT-4o",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [2420, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIALS_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the AI agent's response to extract the JSON\nconst agentOutput = $('AI Content Analyzer').first().json.output;\n\n// Try to parse JSON from the response\nlet parsed;\ntry {\n  // Handle if response is already an object\n  if (typeof agentOutput === 'object') {\n    parsed = agentOutput;\n  } else {\n    // Try to extract JSON from text response\n    const jsonMatch = agentOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      parsed = JSON.parse(jsonMatch[0]);\n    } else {\n      throw new Error('No JSON found in response');\n    }\n  }\n} catch (e) {\n  // Fallback with defaults\n  parsed = {\n    title: $('Prepare Context').first().json.rawText?.substring(0, 50) || 'Untitled Entry',\n    url: null,\n    category: 'Notes',\n    tags: ['uncategorized'],\n    description: $('Prepare Context').first().json.rawText || 'No description available',\n    isTask: false,\n    dueDate: null,\n    priority: null\n  };\n}\n\n// Ensure all required fields exist\nconst result = {\n  title: parsed.title || 'Untitled Entry',\n  url: parsed.url || null,\n  category: parsed.category || 'Notes',\n  tags: Array.isArray(parsed.tags) ? parsed.tags : ['uncategorized'],\n  description: parsed.description || '',\n  isTask: Boolean(parsed.isTask),\n  dueDate: parsed.dueDate || null,\n  priority: parsed.priority || null,\n  // Include original context\n  contentType: $('Prepare Context').first().json.contentType,\n  originalText: $('Prepare Context').first().json.rawText,\n  hasMedia: $('Prepare Context').first().json.hasMedia,\n  chatId: $('Prepare Context').first().json.chatId,\n  messageId: $('Prepare Context').first().json.messageId,\n  createdAt: $('Prepare Context').first().json.timestamp\n};\n\nreturn { json: result };"
+      },
+      "id": "parse-ai-response",
+      "name": "Parse AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 300]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "create",
+        "databaseId": "={{ $credentials.notionDatabaseId || 'YOUR_NOTEBOOK_DATABASE_ID' }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Name|title",
+              "title": "={{ $json.title }}"
+            },
+            {
+              "key": "URL|url",
+              "urlValue": "={{ $json.url }}"
+            },
+            {
+              "key": "Category|select",
+              "selectValue": "={{ $json.category }}"
+            },
+            {
+              "key": "Tags|multi_select",
+              "multiSelectValue": "={{ $json.tags }}"
+            },
+            {
+              "key": "Description|rich_text",
+              "textContent": "={{ $json.description }}"
+            },
+            {
+              "key": "Created|date",
+              "dateValue": "={{ $json.createdAt }}"
+            },
+            {
+              "key": "Is Task|checkbox",
+              "checkboxValue": "={{ $json.isTask }}"
+            },
+            {
+              "key": "Due Date|date",
+              "dateValue": "={{ $json.dueDate }}"
+            },
+            {
+              "key": "Priority|select",
+              "selectValue": "={{ $json.priority }}"
+            },
+            {
+              "key": "Content Type|select",
+              "selectValue": "={{ $json.contentType }}"
+            },
+            {
+              "key": "Source|rich_text",
+              "textContent": "Telegram"
+            }
+          ]
+        },
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "paragraph",
+              "textContent": "={{ $json.originalText || $json.description }}"
+            }
+          ]
+        }
+      },
+      "id": "create-notion-page",
+      "name": "Create Notebook Entry",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [2860, 300],
+      "credentials": {
+        "notionApi": {
+          "id": "NOTION_CREDENTIALS_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-media",
+              "leftValue": "={{ $('Prepare Context').first().json.hasMedia }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-has-media",
+      "name": "Has Media to Upload?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3080, 300]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').first().json.message.photo?.slice(-1)[0]?.file_id || $('Telegram Trigger').first().json.message.video?.file_id || $('Telegram Trigger').first().json.message.document?.file_id || $('Telegram Trigger').first().json.message.audio?.file_id }}"
+      },
+      "id": "get-media-file",
+      "name": "Get Media File",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3300, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIALS_ID",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "append",
+        "blockId": "={{ $('Create Notebook Entry').first().json.id }}",
+        "blockUi": {
+          "blockValues": [
+            {
+              "type": "file",
+              "fileUrl": "={{ $json.file_path ? 'https://api.telegram.org/file/bot' + $credentials.telegramApi.accessToken + '/' + $json.file_path : '' }}"
+            }
+          ]
+        }
+      },
+      "id": "append-media",
+      "name": "Append Media to Page",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [3520, 200],
+      "credentials": {
+        "notionApi": {
+          "id": "NOTION_CREDENTIALS_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-final",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [3740, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Prepare Context').first().json.chatId }}",
+        "text": "✅ **Saved to Notebook!**\n\n📝 **{{ $('Parse AI Response').first().json.title }}**\n\n📂 Category: {{ $('Parse AI Response').first().json.category }}\n🏷️ Tags: {{ $('Parse AI Response').first().json.tags.join(', ') }}\n{{ $('Parse AI Response').first().json.isTask ? '✔️ Marked as Task' : '' }}\n{{ $('Parse AI Response').first().json.dueDate ? '📅 Due: ' + $('Parse AI Response').first().json.dueDate : '' }}\n\n💡 {{ $('Parse AI Response').first().json.description }}",
+        "additionalFields": {
+          "parse_mode": "Markdown",
+          "replyToMessageId": "={{ $('Prepare Context').first().json.messageId }}"
+        }
+      },
+      "id": "send-confirmation",
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3960, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIALS_ID",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 Telegram AI Notebook Integration\n\nThis workflow automatically processes all incoming Telegram messages and intelligently adds them to your Notion \"Notebook\" database.\n\n### Supported Content Types:\n- 🔗 Links/URLs\n- 📝 Text messages\n- 🎤 Voice notes (auto-transcribed)\n- 📷 Images\n- 🎬 Videos\n- 📄 Documents\n- 🎵 Audio files\n\n### AI-Powered Features:\n- Smart title generation\n- Automatic categorization\n- Intelligent tagging\n- Task detection\n- Due date extraction\n- Description generation",
+        "height": 460,
+        "width": 340,
+        "color": 4
+      },
+      "id": "sticky-note",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-300, 140]
+    },
+    {
+      "parameters": {
+        "content": "## ⚙️ Setup Instructions\n\n1. **Telegram Bot**: Create bot via @BotFather and add API credentials\n2. **Notion**: Create integration and share \"Notebook\" database\n3. **OpenAI**: Add API key for GPT-4o and Whisper\n4. **Database ID**: Replace YOUR_NOTEBOOK_DATABASE_ID with your actual database ID\n\n### Required Notion Database Properties:\n- Name (Title)\n- URL (URL)\n- Category (Select)\n- Tags (Multi-select)\n- Description (Rich Text)\n- Created (Date)\n- Is Task (Checkbox)\n- Due Date (Date)\n- Priority (Select)\n- Content Type (Select)\n- Source (Rich Text)",
+        "height": 400,
+        "width": 340,
+        "color": 6
+      },
+      "id": "sticky-note-setup",
+      "name": "Setup Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-300, 620]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route Content Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Content Type": {
+      "main": [
+        [
+          {
+            "node": "Merge All Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge All Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge All Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge All Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge All Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge All Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge All Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Content": {
+      "main": [
+        [
+          {
+            "node": "Prepare Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Context": {
+      "main": [
+        [
+          {
+            "node": "Has Voice Note?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Voice Note?": {
+      "main": [
+        [
+          {
+            "node": "Get Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Transcription",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Voice File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Voice (Whisper)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Voice (Whisper)": {
+      "main": [
+        [
+          {
+            "node": "Merge Transcription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Transcription": {
+      "main": [
+        [
+          {
+            "node": "Set Processed Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Processed Text": {
+      "main": [
+        [
+          {
+            "node": "Get Notebook Schema",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Existing Tags/Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Notebook Schema": {
+      "main": [
+        [
+          {
+            "node": "Extract Existing Taxonomy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Tags/Categories": {
+      "main": [
+        [
+          {
+            "node": "Extract Existing Taxonomy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Existing Taxonomy": {
+      "main": [
+        [
+          {
+            "node": "AI Content Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Content Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Content Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response": {
+      "main": [
+        [
+          {
+            "node": "Create Notebook Entry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Notebook Entry": {
+      "main": [
+        [
+          {
+            "node": "Has Media to Upload?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Media to Upload?": {
+      "main": [
+        [
+          {
+            "node": "Get Media File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Media File": {
+      "main": [
+        [
+          {
+            "node": "Append Media to Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Media to Page": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "AI",
+      "id": "1"
+    },
+    {
+      "name": "Telegram",
+      "id": "2"
+    },
+    {
+      "name": "Notion",
+      "id": "3"
+    },
+    {
+      "name": "Productivity",
+      "id": "4"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-12-26T00:00:00.000Z",
+  "versionId": "1"
+}
