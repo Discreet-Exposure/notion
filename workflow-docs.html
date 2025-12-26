@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram AI Notebook Integration - n8n Workflow</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --secondary: #06b6d4;
+            --accent: #f59e0b;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --telegram: #0088cc;
+            --notion: #ffffff;
+            --n8n: #ff6d5a;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a1a2e 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            padding: 80px 0;
+            text-align: center;
+            background: radial-gradient(ellipse at top, rgba(124, 58, 237, 0.15) 0%, transparent 60%);
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+        
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+        
+        .integration-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .integration-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .integration-logo i {
+            font-size: 48px;
+        }
+        
+        .integration-logo span {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .arrow {
+            font-size: 24px;
+            color: var(--text-secondary);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(124, 58, 237, 0.5);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        /* Features Section */
+        .features {
+            padding: 80px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+        
+        .section-title p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 30px rgba(124, 58, 237, 0.15);
+        }
+        
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .feature-icon.link { background: rgba(6, 182, 212, 0.2); color: var(--secondary); }
+        .feature-icon.voice { background: rgba(124, 58, 237, 0.2); color: var(--primary); }
+        .feature-icon.image { background: rgba(245, 158, 11, 0.2); color: var(--accent); }
+        .feature-icon.task { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .feature-icon.tag { background: rgba(236, 72, 153, 0.2); color: #ec4899; }
+        .feature-icon.ai { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+        
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        
+        /* Workflow Section */
+        .workflow {
+            padding: 80px 0;
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        .workflow-diagram {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.8;
+            color: var(--secondary);
+        }
+        
+        /* Properties Section */
+        .properties {
+            padding: 80px 0;
+        }
+        
+        .properties-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .properties-table th,
+        .properties-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .properties-table th {
+            background: rgba(124, 58, 237, 0.1);
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .properties-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .properties-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .property-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .property-type.title { background: rgba(6, 182, 212, 0.2); color: var(--secondary); }
+        .property-type.url { background: rgba(99, 102, 241, 0.2); color: #6366f1; }
+        .property-type.select { background: rgba(245, 158, 11, 0.2); color: var(--accent); }
+        .property-type.multi-select { background: rgba(236, 72, 153, 0.2); color: #ec4899; }
+        .property-type.text { background: rgba(148, 163, 184, 0.2); color: var(--text-secondary); }
+        .property-type.date { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+        .property-type.checkbox { background: rgba(124, 58, 237, 0.2); color: var(--primary); }
+        
+        /* Setup Steps */
+        .setup {
+            padding: 80px 0;
+            background: rgba(30, 41, 59, 0.5);
+        }
+        
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .step {
+            display: flex;
+            gap: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+        }
+        
+        .step-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        
+        .step-content h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+        
+        .step-content p {
+            color: var(--text-secondary);
+        }
+        
+        .step-content ul {
+            margin-top: 12px;
+            padding-left: 20px;
+            color: var(--text-secondary);
+        }
+        
+        .step-content li {
+            margin-bottom: 8px;
+        }
+        
+        .step-content code {
+            background: var(--bg-dark);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Monaco', monospace;
+            font-size: 13px;
+            color: var(--secondary);
+        }
+        
+        /* Examples */
+        .examples {
+            padding: 80px 0;
+        }
+        
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+        }
+        
+        .example-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .example-input {
+            padding: 20px;
+            background: rgba(0, 136, 204, 0.1);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .example-input .label {
+            font-size: 12px;
+            color: var(--telegram);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .example-output {
+            padding: 20px;
+            background: rgba(124, 58, 237, 0.05);
+        }
+        
+        .example-output .label {
+            font-size: 12px;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .example-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .meta-tag {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            background: rgba(124, 58, 237, 0.2);
+            color: var(--primary);
+        }
+        
+        .meta-tag.category {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--accent);
+        }
+        
+        .meta-tag.task {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+        }
+        
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .step {
+                flex-direction: column;
+            }
+            
+            .integration-logos {
+                flex-direction: column;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge">
+                <i class="fas fa-robot"></i>
+                AI-Powered Workflow
+            </div>
+            <h1>Telegram AI Notebook</h1>
+            <p>Transform your Telegram messages into organized Notion entries with AI. Links, voice notes, images, videos, and text - all intelligently processed and categorized.</p>
+            
+            <div class="integration-logos">
+                <div class="integration-logo">
+                    <i class="fab fa-telegram" style="color: var(--telegram);"></i>
+                    <span>Telegram</span>
+                </div>
+                <i class="fas fa-arrow-right arrow"></i>
+                <div class="integration-logo">
+                    <i class="fas fa-cogs" style="color: var(--n8n);"></i>
+                    <span>n8n + AI</span>
+                </div>
+                <i class="fas fa-arrow-right arrow"></i>
+                <div class="integration-logo">
+                    <i class="fas fa-book-open" style="color: var(--text-primary);"></i>
+                    <span>Notion</span>
+                </div>
+            </div>
+            
+            <div class="btn-group">
+                <a href="telegram-notebook-workflow.json" download class="btn btn-primary">
+                    <i class="fas fa-download"></i>
+                    Download Workflow
+                </a>
+                <a href="README.md" class="btn btn-secondary">
+                    <i class="fas fa-book"></i>
+                    Documentation
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Supported Content Types</h2>
+                <p>Everything you send to your Telegram bot gets intelligently processed</p>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon link">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <h3>Links & URLs</h3>
+                    <p>Automatically extracts and names links, selects categories, and generates descriptions for saved bookmarks.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon voice">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                    <h3>Voice Notes</h3>
+                    <p>Transcribed using OpenAI Whisper, then analyzed and organized like any other note.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon image">
+                        <i class="fas fa-image"></i>
+                    </div>
+                    <h3>Images & Photos</h3>
+                    <p>Photos and images are saved with captions analyzed and embedded in your Notion pages.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon task">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Task Detection</h3>
+                    <p>AI detects tasks and to-dos, extracts due dates, and assigns priority levels automatically.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon tag">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <h3>Smart Tagging</h3>
+                    <p>Uses existing tags when appropriate and creates new ones for better organization.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon ai">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>AI Descriptions</h3>
+                    <p>Every entry gets a helpful 2-3 sentence description summarizing the content.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Workflow Diagram -->
+    <section class="workflow">
+        <div class="container">
+            <div class="section-title">
+                <h2>How It Works</h2>
+                <p>The complete workflow from Telegram to Notion</p>
+            </div>
+            
+            <div class="workflow-diagram">
+┌─────────────────┐
+│ Telegram Trigger│ ─► Receives all messages, links, media, voice notes
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Route Content   │ ─► Identifies: Link | Image | Voice | Video | Document | Text
+└────────┬────────┘
+         │
+    ┌────┴────────────────┐
+    ▼                     ▼
+┌───────────────┐    ┌──────────────┐
+│ Voice Note?   │    │Other Content │
+│ ↓             │    └──────┬───────┘
+│ Transcribe    │           │
+│ (Whisper)     │           │
+└───────┬───────┘           │
+        └─────────┬─────────┘
+                  ▼
+┌─────────────────────────────────┐
+│ Get Existing Tags & Categories  │ ─► Learns your taxonomy
+└───────────────┬─────────────────┘
+                ▼
+┌─────────────────────────────────┐
+│ AI Content Analyzer (GPT-4o)    │ ─► Generates: Title, Category, Tags,
+│                                 │    Description, Task status, Due date
+└───────────────┬─────────────────┘
+                ▼
+┌─────────────────────────────────┐
+│ Create Notion Page              │ ─► Adds to "Notebook" database
+└───────────────┬─────────────────┘
+                ▼
+┌─────────────────────────────────┐
+│ Attach Media (if applicable)    │ ─► Embeds images, videos, files
+└───────────────┬─────────────────┘
+                ▼
+┌─────────────────────────────────┐
+│ Send Confirmation               │ ─► Replies with saved entry details
+└─────────────────────────────────┘
+            </div>
+        </div>
+    </section>
+    
+    <!-- Properties Table -->
+    <section class="properties">
+        <div class="container">
+            <div class="section-title">
+                <h2>Database Properties</h2>
+                <p>Your Notion "Notebook" database needs these properties</p>
+            </div>
+            
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Name</strong></td>
+                        <td><span class="property-type title">Title</span></td>
+                        <td>AI-generated title for the entry</td>
+                    </tr>
+                    <tr>
+                        <td><strong>URL</strong></td>
+                        <td><span class="property-type url">URL</span></td>
+                        <td>Link URL if the entry contains a web link</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Category</strong></td>
+                        <td><span class="property-type select">Select</span></td>
+                        <td>Content category (Articles, Ideas, Tasks, Notes, etc.)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tags</strong></td>
+                        <td><span class="property-type multi-select">Multi-select</span></td>
+                        <td>Relevant tags (AI creates new ones as needed)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Description</strong></td>
+                        <td><span class="property-type text">Rich Text</span></td>
+                        <td>AI-generated 2-3 sentence summary</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Created</strong></td>
+                        <td><span class="property-type date">Date</span></td>
+                        <td>When the entry was received</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Is Task</strong></td>
+                        <td><span class="property-type checkbox">Checkbox</span></td>
+                        <td>Whether this is a task/to-do item</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Due Date</strong></td>
+                        <td><span class="property-type date">Date</span></td>
+                        <td>Task due date (extracted from natural language)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Priority</strong></td>
+                        <td><span class="property-type select">Select</span></td>
+                        <td>High / Medium / Low</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Content Type</strong></td>
+                        <td><span class="property-type select">Select</span></td>
+                        <td>Link, Text, Voice, Image, Video, Document</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    
+    <!-- Setup Section -->
+    <section class="setup">
+        <div class="container">
+            <div class="section-title">
+                <h2>Quick Setup Guide</h2>
+                <p>Get running in 5 simple steps</p>
+            </div>
+            
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Create Telegram Bot</h3>
+                        <p>Open Telegram and message <code>@BotFather</code> with <code>/newbot</code>. Save the API token you receive.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Set Up Notion Database</h3>
+                        <p>Create a database called "Notebook" with the properties listed above. Create a Notion integration at <code>notion.so/my-integrations</code> and share the database with it.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Get Your API Keys</h3>
+                        <ul>
+                            <li>Telegram Bot Token (from BotFather)</li>
+                            <li>Notion Integration Token</li>
+                            <li>OpenAI API Key (for GPT-4o and Whisper)</li>
+                            <li>Notion Database ID (from database URL)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Import to n8n</h3>
+                        <p>Download the workflow file and import it in n8n via <code>Workflows → Import from File</code>. Configure your credentials in the Credentials section.</p>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Activate & Test</h3>
+                        <p>Toggle the workflow to "Active" and send a test message to your Telegram bot. Watch the magic happen!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Examples Section -->
+    <section class="examples">
+        <div class="container">
+            <div class="section-title">
+                <h2>Example Usage</h2>
+                <p>See how different content types are processed</p>
+            </div>
+            
+            <div class="examples-grid">
+                <div class="example-card">
+                    <div class="example-input">
+                        <div class="label">
+                            <i class="fab fa-telegram"></i> You send:
+                        </div>
+                        <p>https://n8n.io/blog/ai-workflow-automation</p>
+                    </div>
+                    <div class="example-output">
+                        <div class="label">
+                            <i class="fas fa-robot"></i> AI creates:
+                        </div>
+                        <p><strong>AI Workflow Automation Guide</strong></p>
+                        <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">Comprehensive guide to building AI-powered automation workflows using n8n...</p>
+                        <div class="example-meta">
+                            <span class="meta-tag category">Articles</span>
+                            <span class="meta-tag">automation</span>
+                            <span class="meta-tag">ai</span>
+                            <span class="meta-tag">n8n</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-input">
+                        <div class="label">
+                            <i class="fab fa-telegram"></i> You send:
+                        </div>
+                        <p>🎤 <em>"Remember to call the dentist tomorrow to schedule an appointment for next Friday"</em></p>
+                    </div>
+                    <div class="example-output">
+                        <div class="label">
+                            <i class="fas fa-robot"></i> AI creates:
+                        </div>
+                        <p><strong>Schedule Dentist Appointment</strong></p>
+                        <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">Call the dentist to schedule an appointment for next Friday...</p>
+                        <div class="example-meta">
+                            <span class="meta-tag task">✓ Task</span>
+                            <span class="meta-tag category">Personal</span>
+                            <span class="meta-tag">health</span>
+                            <span class="meta-tag">📅 Due: Friday</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-input">
+                        <div class="label">
+                            <i class="fab fa-telegram"></i> You send:
+                        </div>
+                        <p>New startup idea: An app that converts voice memos into structured meeting notes with action items</p>
+                    </div>
+                    <div class="example-output">
+                        <div class="label">
+                            <i class="fas fa-robot"></i> AI creates:
+                        </div>
+                        <p><strong>Voice-to-Meeting-Notes App Idea</strong></p>
+                        <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">App concept for converting voice recordings into structured meeting documentation with extracted action items...</p>
+                        <div class="example-meta">
+                            <span class="meta-tag category">Ideas</span>
+                            <span class="meta-tag">startup</span>
+                            <span class="meta-tag">ai</span>
+                            <span class="meta-tag">productivity</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="example-card">
+                    <div class="example-input">
+                        <div class="label">
+                            <i class="fab fa-telegram"></i> You send:
+                        </div>
+                        <p>📷 <em>[Photo of whiteboard with project diagrams]</em><br>Architecture for the new API</p>
+                    </div>
+                    <div class="example-output">
+                        <div class="label">
+                            <i class="fas fa-robot"></i> AI creates:
+                        </div>
+                        <p><strong>API Architecture Diagram</strong></p>
+                        <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">Whiteboard diagram showing the architecture design for the new API system...</p>
+                        <div class="example-meta">
+                            <span class="meta-tag category">Projects</span>
+                            <span class="meta-tag">architecture</span>
+                            <span class="meta-tag">api</span>
+                            <span class="meta-tag">📷 Image</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>
+                <a href="telegram-notebook-workflow.json" download>Download Workflow</a> · 
+                <a href="notion-database-template.json" download>Database Template</a> · 
+                <a href="README.md">Full Documentation</a>
+            </p>
+            <p style="margin-top: 16px; font-size: 14px;">
+                Built with ❤️ for n8n, Telegram, and Notion
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
