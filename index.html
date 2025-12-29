@@ -322,10 +322,10 @@
             position: absolute;
             left: -6px;
             right: -6px;
-            height: 12px;
-            background: rgba(0, 255, 0, 0.5);
+            height: 8px;
+            background: rgba(0, 255, 0, 0.6);
             border: 2px solid #0f0;
-            border-radius: 3px;
+            border-radius: 2px;
             box-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
             z-index: 10;
             pointer-events: none;
@@ -2765,7 +2765,7 @@
                     // Position sweet spot zone (centered on optimal power)
                     const meterHeight = 150; // matches CSS
                     const spotPosition = optimalPower * meterHeight;
-                    const spotHeight = 12; // matches CSS
+                    const spotHeight = 8; // matches CSS
                     sweetSpot.style.bottom = `${spotPosition - spotHeight / 2}px`;
                     sweetSpot.style.display = 'block';
                 } else {
@@ -3319,14 +3319,16 @@
                 const optimalPower = 0.45 + normalizedDist * 0.45;
                 
                 // Shot accuracy check - timing matters!
-                // Within 8% = perfect (always goes in)
-                // Within 20% = good (50% chance)
-                // Beyond 20% = poor (10% chance - very unlikely)
+                // Within 5% = perfect (always goes in)
+                // Within 15% = good (35% chance)
+                // Beyond 15% = poor (NEVER goes in)
                 const powerError = Math.abs(power - optimalPower);
                 
-                this.perfectShot = powerError <= 0.08;
-                this.goodShot = powerError <= 0.20;
+                this.perfectShot = powerError <= 0.05;
+                this.goodShot = powerError <= 0.15;
                 this.shotPower = power;
+                this.powerError = powerError; // Store for debugging
+                this.optimalPower = optimalPower; // Store for debugging
                 
                 // Determine if shot will go in based on accuracy
                 // This is decided NOW, before any math question
@@ -3334,10 +3336,20 @@
                 if (this.perfectShot) {
                     willScore = true; // Perfect timing = guaranteed make
                 } else if (this.goodShot) {
-                    willScore = Math.random() < 0.50; // 50% chance for good timing
+                    willScore = Math.random() < 0.35; // 35% chance for good timing
                 } else {
-                    willScore = Math.random() < 0.10; // Only 10% for bad timing
+                    willScore = false; // Bad timing = NEVER goes in
                 }
+                
+                // Debug logging
+                console.log('Shot taken:', {
+                    power: power.toFixed(3),
+                    optimalPower: optimalPower.toFixed(3),
+                    powerError: powerError.toFixed(3),
+                    perfect: this.perfectShot,
+                    good: this.goodShot,
+                    willScore: willScore
+                });
                 
                 this.shotWillScore = willScore;
                 
@@ -3387,6 +3399,12 @@
                 
                 // Check if shot animation is complete
                 if (t >= 1) {
+                    console.log('Shot resolving:', {
+                        shotWillScore: this.shotWillScore,
+                        perfectShot: this.perfectShot,
+                        goodShot: this.goodShot
+                    });
+                    
                     if (this.shotWillScore) {
                         // Ball goes in!
                         this.handleMadeBasket();
@@ -3530,18 +3548,19 @@
                     case 'aiBlock':
                         // AI tried to block player's shot
                         if (correct) {
-                            // Player answered correctly - shot continues as planned
+                            // Player answered correctly - shot continues with original outcome
+                            // shotWillScore was set in takeShot based on timing
                             this.lastAnswerCorrect = true;
                             this.audio.playCorrect();
-                            // Make sure ball continues flying - reset shotProgress to continue animation
                             this.ballInFlight = true;
-                            // shotWillScore is already set from takeShot
+                            console.log('Correct answer - shot continues with willScore:', this.shotWillScore);
                         } else {
                             // Player failed - shot blocked, AI gets the ball
                             this.lastAnswerCorrect = false;
                             this.audio.playWrong();
                             this.ballInFlight = false;
                             this.shotWillScore = false;
+                            console.log('Wrong answer - shot blocked');
                             this.switchPossession(); // Gives ball to AI
                         }
                         break;
