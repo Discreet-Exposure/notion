@@ -1162,16 +1162,34 @@
                 this.shootCooldown = 0;
                 this.difficulty = 0.5; // 0-1 scale
                 this.hasBall = false;
+                this.isShooting = false;
+                this.shotProgress = 0;
+                this.shotTrajectory = [];
+                this.shotMade = false;
+                this.ballPosition = { x: 0, y: 0 };
             }
             
             update(game, dt) {
                 this.shootCooldown = Math.max(0, this.shootCooldown - dt);
+                
+                // Update shot animation
+                if (this.isShooting) {
+                    this.updateShotAnimation(game, dt);
+                    return;
+                }
                 
                 // Behavior tree simulation
                 if (this.hasBall) {
                     this.executeShootBehavior(game, dt);
                 } else {
                     this.executeDefendBehavior(game, dt);
+                }
+                
+                // Update ball position when holding
+                if (this.hasBall && !this.isShooting) {
+                    const aiT = game.aiPlayer.getComponent(Transform);
+                    this.ballPosition.x = aiT.x + 30;
+                    this.ballPosition.y = aiT.y - 30;
                 }
             }
             
@@ -1180,49 +1198,116 @@
                 const transform = aiPlayer.getComponent(Transform);
                 
                 // Move to shooting position
-                const shootX = CONFIG.HOOP_X - 200;
-                const shootY = CONFIG.COURT_HEIGHT / 2 + Utils.randomRange(-50, 50);
+                const shootX = CONFIG.HOOP_X - 180;
+                const shootY = CONFIG.COURT_HEIGHT * 0.55;
                 
                 const dx = shootX - transform.x;
                 const dy = shootY - transform.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
-                if (dist > 20) {
-                    const speed = 2 * (1 + this.difficulty * 0.5);
+                if (dist > 15) {
+                    const speed = 2.5 * (1 + this.difficulty * 0.5);
                     transform.x += (dx / dist) * speed;
                     transform.y += (dy / dist) * speed;
                 } else if (this.shootCooldown <= 0) {
                     // Take shot
-                    this.takeShot(game, transform);
-                    this.hasBall = false;
-                    this.shootCooldown = 3000 + Utils.randomRange(-500, 500);
+                    this.startShot(game, transform);
                 }
             }
             
             executeDefendBehavior(game, dt) {
-                // Position between ball and hoop
+                // Position between player and hoop
                 const aiPlayer = game.aiPlayer;
                 const transform = aiPlayer.getComponent(Transform);
+                const playerT = game.player.getComponent(Transform);
                 
-                const defenseX = 500;
-                const defenseY = CONFIG.COURT_HEIGHT / 2;
+                // Dynamic defense position based on player location
+                const defenseX = Math.min(550, playerT.x + 100);
+                const defenseY = Utils.clamp(playerT.y, CONFIG.COURT_HEIGHT * 0.45, CONFIG.COURT_HEIGHT - 80);
                 
                 const dx = defenseX - transform.x;
                 const dy = defenseY - transform.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
                 if (dist > 10) {
-                    transform.x += (dx / dist) * 1.5;
-                    transform.y += (dy / dist) * 1.5;
+                    transform.x += (dx / dist) * 2;
+                    transform.y += (dy / dist) * 2;
                 }
             }
             
-            takeShot(game, transform) {
+            startShot(game, transform) {
+                // Calculate trajectory
+                const startX = transform.x + 30;
+                const startY = transform.y - 30;
+                const targetX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS;
+                const targetY = CONFIG.HOOP_HEIGHT;
+                
                 // AI shoots with accuracy based on difficulty
                 const accuracy = 0.5 + this.difficulty * 0.3;
-                const made = Math.random() < accuracy;
+                this.shotMade = Math.random() < accuracy;
                 
-                if (made) {
+                // Calculate shot trajectory points
+                this.shotTrajectory = this.calculateAIShotTrajectory(startX, startY, targetX, targetY, this.shotMade);
+                this.shotProgress = 0;
+                this.isShooting = true;
+                this.ballPosition = { x: startX, y: startY };
+                
+                game.audio.playBounce(1.2);
+            }
+            
+            calculateAIShotTrajectory(startX, startY, targetX, targetY, willMake) {
+                const points = [];
+                const dx = targetX - startX;
+                const dy = targetY - startY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                // Add some error if miss
+                const errorX = willMake ? 0 : (Math.random() - 0.5) * 60;
+                const adjustedTargetX = targetX + errorX;
+                
+                // Calculate arc
+                const peakHeight = Math.min(startY, targetY) - 120;
+                const steps = 60;
+                
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = startX + (adjustedTargetX - startX) * t;
+                    // Parabolic arc
+                    const arcT = t * 2 - 1; // -1 to 1
+                    const arcHeight = (1 - arcT * arcT) * Math.abs(peakHeight - startY);
+                    const baseY = startY + (targetY - startY) * t;
+                    const y = baseY - arcHeight * (1 - t * 0.3);
+                    
+                    points.push({ x, y });
+                    
+                    // Stop if hit ground or past hoop
+                    if (y > CONFIG.COURT_HEIGHT - 50) break;
+                }
+                
+                return points;
+            }
+            
+            updateShotAnimation(game, dt) {
+                this.shotProgress += dt / 800; // Shot takes ~800ms
+                
+                if (this.shotProgress >= 1) {
+                    this.finishShot(game);
+                    return;
+                }
+                
+                // Interpolate ball position along trajectory
+                const idx = Math.floor(this.shotProgress * (this.shotTrajectory.length - 1));
+                if (idx < this.shotTrajectory.length) {
+                    this.ballPosition = { ...this.shotTrajectory[idx] };
+                }
+            }
+            
+            finishShot(game) {
+                this.isShooting = false;
+                this.hasBall = false;
+                this.shootCooldown = 2500 + Utils.randomRange(-300, 300);
+                
+                if (this.shotMade) {
                     game.aiScore += 2;
                     game.audio.playSwish();
                     game.audio.playCrowd();
@@ -1230,12 +1315,19 @@
                     game.audio.playRimHit();
                 }
                 
-                // Create visual shot arc
-                game.createShotArc(transform.x, transform.y, made);
+                // Reset ball position off screen
+                this.ballPosition = { x: -100, y: -100 };
             }
             
-            giveBall() {
+            giveBall(game) {
                 this.hasBall = true;
+                this.shootCooldown = 500; // Brief delay before moving
+                
+                // Set initial ball position near AI
+                if (game && game.aiPlayer) {
+                    const aiT = game.aiPlayer.getComponent(Transform);
+                    this.ballPosition = { x: aiT.x + 30, y: aiT.y - 30 };
+                }
             }
         }
 
@@ -1463,44 +1555,92 @@
                 const hoopX = CONFIG.HOOP_X;
                 const hoopY = CONFIG.HOOP_HEIGHT;
                 
-                // Backboard
-                ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                ctx.fillRect(hoopX + 10, hoopY - 80, 10, 100);
+                // Pole/support
+                ctx.fillStyle = '#444';
+                ctx.fillRect(hoopX + 20, hoopY - 60, 8, 200);
+                
+                // Backboard (larger and more visible)
+                const backboardX = hoopX + 10;
+                const backboardTop = hoopY - 80;
+                const backboardHeight = 100;
+                const backboardWidth = 12;
+                
+                // Backboard glass effect
+                const glassGrad = ctx.createLinearGradient(backboardX, backboardTop, backboardX + backboardWidth, backboardTop);
+                glassGrad.addColorStop(0, 'rgba(200, 220, 255, 0.9)');
+                glassGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.95)');
+                glassGrad.addColorStop(1, 'rgba(200, 220, 255, 0.9)');
+                
+                ctx.fillStyle = glassGrad;
+                ctx.fillRect(backboardX, backboardTop, backboardWidth, backboardHeight);
                 
                 // Backboard outline
                 ctx.strokeStyle = '#e94560';
                 ctx.lineWidth = 3;
-                ctx.strokeRect(hoopX + 10, hoopY - 80, 10, 100);
+                ctx.strokeRect(backboardX, backboardTop, backboardWidth, backboardHeight);
                 
-                // Rim
+                // Target square on backboard
+                ctx.strokeStyle = '#e94560';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(backboardX, hoopY - 25, backboardWidth, 35);
+                
+                // Rim connector
+                ctx.fillStyle = '#ff6b35';
+                ctx.fillRect(hoopX, hoopY - 3, 10, 6);
+                
+                // Rim (orange ring) - draw as thicker for visibility
                 ctx.strokeStyle = '#ff6b35';
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 5;
                 ctx.beginPath();
                 ctx.ellipse(hoopX - CONFIG.RIM_RADIUS, hoopY, CONFIG.RIM_RADIUS, CONFIG.RIM_RADIUS * 0.3, 0, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Net (simple lines)
+                // Rim inner edge (for depth)
+                ctx.strokeStyle = '#cc5522';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(hoopX - CONFIG.RIM_RADIUS, hoopY + 2, CONFIG.RIM_RADIUS - 2, CONFIG.RIM_RADIUS * 0.25, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Net (more detailed)
                 ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < 8; i++) {
-                    const angle = (i / 8) * Math.PI * 2;
-                    const x = hoopX - CONFIG.RIM_RADIUS + Math.cos(angle) * CONFIG.RIM_RADIUS;
-                    const baseY = hoopY + Math.sin(angle) * CONFIG.RIM_RADIUS * 0.3;
+                ctx.lineWidth = 1.5;
+                const netSegments = 10;
+                const netDepth = 45;
+                
+                for (let i = 0; i < netSegments; i++) {
+                    const angle = (i / netSegments) * Math.PI * 2;
+                    const startX = hoopX - CONFIG.RIM_RADIUS + Math.cos(angle) * CONFIG.RIM_RADIUS;
+                    const startY = hoopY + Math.sin(angle) * CONFIG.RIM_RADIUS * 0.3;
                     
+                    // Each net strand
                     ctx.beginPath();
-                    ctx.moveTo(x, baseY);
-                    ctx.quadraticCurveTo(
-                        hoopX - CONFIG.RIM_RADIUS,
-                        baseY + 30,
-                        hoopX - CONFIG.RIM_RADIUS + (Math.random() - 0.5) * 10,
-                        baseY + 50
-                    );
+                    ctx.moveTo(startX, startY);
+                    
+                    // Create wavy net effect
+                    const midX = hoopX - CONFIG.RIM_RADIUS + Math.cos(angle) * CONFIG.RIM_RADIUS * 0.6;
+                    const midY = startY + netDepth * 0.5;
+                    const endX = hoopX - CONFIG.RIM_RADIUS + Math.cos(angle) * CONFIG.RIM_RADIUS * 0.3;
+                    const endY = startY + netDepth;
+                    
+                    ctx.quadraticCurveTo(midX, midY, endX, endY);
+                    ctx.stroke();
+                }
+                
+                // Horizontal net rings
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1;
+                for (let ring = 1; ring <= 3; ring++) {
+                    const ringY = hoopY + ring * 12;
+                    const ringRadius = CONFIG.RIM_RADIUS * (1 - ring * 0.2);
+                    ctx.beginPath();
+                    ctx.ellipse(hoopX - CONFIG.RIM_RADIUS, ringY, ringRadius, ringRadius * 0.2, 0, 0, Math.PI * 2);
                     ctx.stroke();
                 }
             }
             
             // Procedurally draw basketball
-            drawBall(x, y, z, rotation = 0) {
+            drawBall(x, y, z, rotation = 0, isAIBall = false) {
                 const ctx = this.ctx;
                 const scale = 1 + z * 0.001; // Depth scaling
                 const r = CONFIG.BALL_RADIUS * scale;
@@ -1509,11 +1649,17 @@
                 ctx.translate(x, y);
                 ctx.rotate(rotation);
                 
-                // Ball base (orange gradient)
+                // Ball base (orange gradient, slightly blue-tinted for AI)
                 const ballGrad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, 0, 0, r);
-                ballGrad.addColorStop(0, '#ff8c42');
-                ballGrad.addColorStop(0.7, '#e85d04');
-                ballGrad.addColorStop(1, '#9d0208');
+                if (isAIBall) {
+                    ballGrad.addColorStop(0, '#ff9966');
+                    ballGrad.addColorStop(0.7, '#cc6633');
+                    ballGrad.addColorStop(1, '#993322');
+                } else {
+                    ballGrad.addColorStop(0, '#ff8c42');
+                    ballGrad.addColorStop(0.7, '#e85d04');
+                    ballGrad.addColorStop(1, '#9d0208');
+                }
                 
                 ctx.fillStyle = ballGrad;
                 ctx.beginPath();
@@ -1551,6 +1697,47 @@
                 ctx.fill();
                 
                 ctx.restore();
+            }
+            
+            // Draw glow effect around AI when they have the ball
+            drawAIGlow(x, y) {
+                const ctx = this.ctx;
+                const time = Date.now() / 200;
+                const pulseSize = 40 + Math.sin(time) * 5;
+                
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, pulseSize);
+                gradient.addColorStop(0, 'rgba(67, 97, 238, 0.3)');
+                gradient.addColorStop(0.5, 'rgba(67, 97, 238, 0.15)');
+                gradient.addColorStop(1, 'rgba(67, 97, 238, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw AI shot trajectory
+            drawAIShotTrajectory(trajectory, progress) {
+                if (!trajectory || trajectory.length < 2) return;
+                
+                const ctx = this.ctx;
+                const currentIdx = Math.floor(progress * trajectory.length);
+                
+                // Draw fading trail behind the ball
+                ctx.strokeStyle = 'rgba(67, 97, 238, 0.4)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 4]);
+                
+                ctx.beginPath();
+                for (let i = 0; i <= currentIdx && i < trajectory.length; i++) {
+                    if (i === 0) {
+                        ctx.moveTo(trajectory[i].x, trajectory[i].y);
+                    } else {
+                        ctx.lineTo(trajectory[i].x, trajectory[i].y);
+                    }
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
             }
             
             // Draw player avatar
@@ -1697,6 +1884,8 @@
         class PhysicsEngine {
             constructor() {
                 this.entities = [];
+                this.lastCollision = 0; // Prevent repeated collisions
+                this.COR = 0.65; // Coefficient of restitution
             }
             
             addEntity(entity) {
@@ -1729,8 +1918,8 @@
                         transform.z += velocity.vz;
                         
                         // Apply air resistance
-                        velocity.vx *= 0.99;
-                        velocity.vz *= 0.99;
+                        velocity.vx *= 0.995;
+                        velocity.vz *= 0.995;
                     }
                 }
             }
@@ -1774,30 +1963,92 @@
                 // Ball must be descending and pass through rim plane
                 if (prevY < hoopY && ballY >= hoopY) {
                     const dx = Math.abs(ballX - hoopX);
-                    if (dx < CONFIG.RIM_RADIUS - CONFIG.BALL_RADIUS * 0.5) {
+                    if (dx < CONFIG.RIM_RADIUS - CONFIG.BALL_RADIUS * 0.3) {
                         return true; // Swish!
                     }
                 }
                 return false;
             }
             
-            // Check rim collision
-            checkRimCollision(ballX, ballY) {
-                const rimLeftX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS * 2;
-                const rimRightX = CONFIG.HOOP_X;
-                const rimY = CONFIG.HOOP_HEIGHT;
+            // Check backboard collision and return collision response
+            checkBackboardCollision(ballX, ballY, ballVx, ballVy) {
+                // Backboard dimensions (matches rendering)
+                const backboardX = CONFIG.HOOP_X + 10;
+                const backboardTop = CONFIG.HOOP_HEIGHT - 80;
+                const backboardBottom = CONFIG.HOOP_HEIGHT + 20;
+                const backboardWidth = 12;
                 
-                // Simple AABB for rim
-                const rimWidth = CONFIG.RIM_RADIUS * 2;
-                const rimHeight = 10;
-                
-                if (ballX > rimLeftX - CONFIG.BALL_RADIUS && 
-                    ballX < rimRightX + CONFIG.BALL_RADIUS &&
-                    ballY > rimY - rimHeight - CONFIG.BALL_RADIUS &&
-                    ballY < rimY + CONFIG.BALL_RADIUS) {
-                    return true;
+                // Check if ball is hitting the backboard
+                if (ballX + CONFIG.BALL_RADIUS >= backboardX && 
+                    ballX - CONFIG.BALL_RADIUS <= backboardX + backboardWidth &&
+                    ballY >= backboardTop && 
+                    ballY <= backboardBottom) {
+                    
+                    // Determine which side we're hitting
+                    if (ballVx > 0) {
+                        // Hitting from left - bounce back
+                        return {
+                            hit: true,
+                            newVx: -Math.abs(ballVx) * this.COR,
+                            newVy: ballVy * 0.9,
+                            newX: backboardX - CONFIG.BALL_RADIUS - 1
+                        };
+                    }
                 }
-                return false;
+                
+                return { hit: false };
+            }
+            
+            // Check rim collision with proper physics
+            checkRimCollision(ballX, ballY, ballVx, ballVy, prevX, prevY) {
+                const rimCenterX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS;
+                const rimY = CONFIG.HOOP_HEIGHT;
+                const rimThickness = 4;
+                
+                // Left rim edge (circle collision)
+                const leftRimX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS * 2;
+                const rightRimX = CONFIG.HOOP_X;
+                
+                // Check collision with left rim edge
+                const distToLeftRim = Utils.distance(ballX, ballY, leftRimX, rimY);
+                if (distToLeftRim < CONFIG.BALL_RADIUS + rimThickness) {
+                    const angle = Math.atan2(ballY - rimY, ballX - leftRimX);
+                    return {
+                        hit: true,
+                        newVx: Math.cos(angle) * Math.abs(ballVx + ballVy) * this.COR * 0.5,
+                        newVy: Math.sin(angle) * Math.abs(ballVx + ballVy) * this.COR * 0.5 + Math.abs(ballVy) * 0.3,
+                        edge: 'left'
+                    };
+                }
+                
+                // Check collision with right rim edge (near backboard)
+                const distToRightRim = Utils.distance(ballX, ballY, rightRimX, rimY);
+                if (distToRightRim < CONFIG.BALL_RADIUS + rimThickness) {
+                    const angle = Math.atan2(ballY - rimY, ballX - rightRimX);
+                    return {
+                        hit: true,
+                        newVx: Math.cos(angle) * Math.abs(ballVx + ballVy) * this.COR * 0.5,
+                        newVy: Math.sin(angle) * Math.abs(ballVx + ballVy) * this.COR * 0.5 + Math.abs(ballVy) * 0.3,
+                        edge: 'right'
+                    };
+                }
+                
+                return { hit: false };
+            }
+            
+            // Check floor collision
+            checkFloorCollision(ballY, ballVy) {
+                const floorY = CONFIG.COURT_HEIGHT - 50;
+                
+                if (ballY + CONFIG.BALL_RADIUS >= floorY) {
+                    return {
+                        hit: true,
+                        newY: floorY - CONFIG.BALL_RADIUS,
+                        newVy: -Math.abs(ballVy) * this.COR
+                    };
+                }
+                
+                return { hit: false };
             }
         }
 
@@ -1843,6 +2094,8 @@
                 this.ball = null;
                 this.shotArcs = [];
                 this.ballInFlight = false;
+                this.rimCollisionCooldown = 0;
+                this.bounceCount = 0;
                 
                 // Game loop
                 this.lastTime = 0;
@@ -1946,6 +2199,10 @@
                 
                 this.mathGen.playerElo = 1000;
                 this.ai.difficulty = 0.5;
+                this.ai.hasBall = false;
+                this.ai.isShooting = false;
+                this.ai.shootCooldown = 1000;
+                this.ai.ballPosition = { x: -100, y: -100 };
                 
                 this.updateUI();
             }
@@ -2042,6 +2299,8 @@
             takeShot(power) {
                 this.shotAttempts++;
                 this.ballInFlight = true;
+                this.rimCollisionCooldown = 0;
+                this.bounceCount = 0;
                 
                 const playerT = this.player.getComponent(Transform);
                 const ballT = this.ball.getComponent(Transform);
@@ -2078,6 +2337,7 @@
                 const ballT = this.ball.getComponent(Transform);
                 const ballV = this.ball.getComponent(Velocity);
                 
+                const prevX = ballT.x;
                 const prevY = ballT.y;
                 
                 // Apply physics
@@ -2085,21 +2345,57 @@
                 ballT.x += ballV.vx;
                 ballT.y += ballV.vy;
                 
-                // Check for basket
+                // Check for basket FIRST (before other collisions)
                 if (this.physics.checkBasket(ballT.x, ballT.y, prevY)) {
                     this.handleMadeBasket();
                     return;
                 }
                 
-                // Check rim collision
-                if (this.physics.checkRimCollision(ballT.x, ballT.y)) {
-                    ballV.vy *= -0.6; // Bounce off rim
-                    ballV.vx *= 0.8;
+                // Check backboard collision
+                const backboardResult = this.physics.checkBackboardCollision(
+                    ballT.x, ballT.y, ballV.vx, ballV.vy
+                );
+                if (backboardResult.hit) {
+                    ballV.vx = backboardResult.newVx;
+                    ballV.vy = backboardResult.newVy;
+                    ballT.x = backboardResult.newX;
                     this.audio.playRimHit();
                 }
                 
-                // Check if ball is out of bounds or on ground
-                if (ballT.y > CONFIG.COURT_HEIGHT - 50 || ballT.x > CONFIG.COURT_WIDTH) {
+                // Check rim collision
+                const rimResult = this.physics.checkRimCollision(
+                    ballT.x, ballT.y, ballV.vx, ballV.vy, prevX, prevY
+                );
+                if (rimResult.hit && !this.rimCollisionCooldown) {
+                    ballV.vx = rimResult.newVx;
+                    ballV.vy = rimResult.newVy;
+                    this.audio.playRimHit();
+                    this.rimCollisionCooldown = 10; // Frames to wait before another rim collision
+                }
+                
+                // Decrease rim collision cooldown
+                if (this.rimCollisionCooldown > 0) {
+                    this.rimCollisionCooldown--;
+                }
+                
+                // Check floor collision
+                const floorResult = this.physics.checkFloorCollision(ballT.y, ballV.vy);
+                if (floorResult.hit) {
+                    ballT.y = floorResult.newY;
+                    ballV.vy = floorResult.newVy;
+                    ballV.vx *= 0.8; // Friction
+                    this.audio.playBounce(0.5);
+                    this.bounceCount = (this.bounceCount || 0) + 1;
+                    
+                    // After 3 bounces or ball nearly stopped, end the shot
+                    if (this.bounceCount >= 3 || Math.abs(ballV.vy) < 2) {
+                        this.handleMissedBasket();
+                        return;
+                    }
+                }
+                
+                // Check if ball is out of bounds
+                if (ballT.x > CONFIG.COURT_WIDTH + 50 || ballT.x < -50) {
                     this.handleMissedBasket();
                 }
             }
@@ -2128,7 +2424,7 @@
                 
                 // Give ball to AI sometimes
                 if (Math.random() > 0.5) {
-                    this.ai.giveBall();
+                    this.ai.giveBall(this);
                 }
                 
                 this.resetBall();
@@ -2241,16 +2537,49 @@
                     const ballT = this.ball.getComponent(Transform);
                     
                     // Determine facing direction
-                    const playerFacing = ballT.x > playerT.x;
+                    const playerFacing = CONFIG.HOOP_X > playerT.x;
                     const aiFacing = CONFIG.HOOP_X > aiT.x;
                     
-                    // Z-sort entities for painter's algorithm
-                    const entities = [
-                        { type: 'player', y: playerT.y, data: { t: playerT, facing: playerFacing } },
-                        { type: 'ai', y: aiT.y, data: { t: aiT, facing: aiFacing } },
-                        { type: 'ball', y: ballT.y, data: { t: ballT } }
-                    ];
+                    // Collect all drawable entities with their Y positions for sorting
+                    const entities = [];
                     
+                    // Player entity
+                    entities.push({ 
+                        type: 'player', 
+                        y: playerT.y, 
+                        data: { t: playerT, facing: playerFacing } 
+                    });
+                    
+                    // AI entity
+                    entities.push({ 
+                        type: 'ai', 
+                        y: aiT.y, 
+                        data: { t: aiT, facing: aiFacing, hasBall: this.ai.hasBall } 
+                    });
+                    
+                    // Player's ball (only if player has it or it's in flight)
+                    if (!this.ai.hasBall || this.ballInFlight) {
+                        entities.push({ 
+                            type: 'ball', 
+                            y: ballT.y, 
+                            data: { t: ballT, inFlight: this.ballInFlight } 
+                        });
+                    }
+                    
+                    // AI's ball (when AI has it or is shooting)
+                    if ((this.ai.hasBall || this.ai.isShooting) && this.ai.ballPosition.x > 0) {
+                        entities.push({
+                            type: 'aiBall',
+                            y: this.ai.ballPosition.y,
+                            data: { 
+                                x: this.ai.ballPosition.x, 
+                                y: this.ai.ballPosition.y,
+                                inFlight: this.ai.isShooting
+                            }
+                        });
+                    }
+                    
+                    // Z-sort entities for painter's algorithm
                     entities.sort((a, b) => a.y - b.y);
                     
                     for (const entity of entities) {
@@ -2267,6 +2596,10 @@
                                 entity.data.facing
                             );
                         } else if (entity.type === 'ai') {
+                            // Glow effect when AI has ball
+                            if (entity.data.hasBall) {
+                                this.renderer.drawAIGlow(entity.data.t.x, entity.data.t.y);
+                            }
                             this.renderer.drawPlayer(
                                 entity.data.t.x, 
                                 entity.data.t.y, 
@@ -2275,16 +2608,35 @@
                                 entity.data.facing
                             );
                         } else if (entity.type === 'ball') {
-                            const rotation = this.ballInFlight 
+                            const rotation = entity.data.inFlight 
                                 ? performance.now() / 100 
                                 : 0;
                             this.renderer.drawBall(
                                 entity.data.t.x, 
                                 entity.data.t.y, 
-                                entity.data.t.z,
+                                entity.data.t.z || 0,
                                 rotation
                             );
+                        } else if (entity.type === 'aiBall') {
+                            const rotation = entity.data.inFlight 
+                                ? performance.now() / 80 
+                                : 0;
+                            this.renderer.drawBall(
+                                entity.data.x, 
+                                entity.data.y, 
+                                0,
+                                rotation,
+                                true // isAIBall flag for slight tint
+                            );
                         }
+                    }
+                    
+                    // Draw AI shooting trajectory preview
+                    if (this.ai.isShooting && this.ai.shotTrajectory.length > 0) {
+                        this.renderer.drawAIShotTrajectory(
+                            this.ai.shotTrajectory, 
+                            this.ai.shotProgress
+                        );
                     }
                 }
             }
