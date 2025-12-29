@@ -985,12 +985,12 @@
                 
                 let a, b, answer;
                 if (op === '+') {
-                    a = Utils.randomInt(1, maxNum);
-                    b = Utils.randomInt(1, maxNum - a);
+                    a = Utils.randomInt(1, Math.floor(maxNum / 2));
+                    b = Utils.randomInt(1, Math.floor(maxNum / 2));
                     answer = a + b;
                 } else {
                     a = Utils.randomInt(2, maxNum);
-                    b = Utils.randomInt(1, a - 1);
+                    b = Utils.randomInt(1, Math.max(1, a - 1));
                     answer = a - b;
                 }
                 
@@ -1258,13 +1258,14 @@
             
             setupKeyboard() {
                 window.addEventListener('keydown', (e) => {
+                    // Ignore key repeats
+                    if (e.repeat) return;
+                    
                     this.keys[e.code] = true;
                     if (e.code === 'Space') {
                         e.preventDefault();
-                        if (!this.shooting) {
-                            this.shooting = true;
-                            this.shootPower = 0;
-                        }
+                        this.shooting = true;
+                        this.shootPower = 0;
                     }
                 });
                 
@@ -1351,7 +1352,12 @@
                 if (this.shooting) {
                     this.shootPower = Math.min(1, this.shootPower + dt / 1000);
                 }
-                return this.shootPower;
+                const power = this.shootPower;
+                // Reset power when not shooting (after release)
+                if (!this.shooting) {
+                    this.shootPower = 0;
+                }
+                return power;
             }
         }
 
@@ -1836,6 +1842,7 @@
                 this.aiPlayer = null;
                 this.ball = null;
                 this.shotArcs = [];
+                this.ballInFlight = false;
                 
                 // Game loop
                 this.lastTime = 0;
@@ -1922,6 +1929,7 @@
                 this.shotAttempts = 0;
                 this.shotsMade = 0;
                 this.shotArcs = [];
+                this.ballInFlight = false;
                 
                 // Reset positions
                 const playerT = this.player.getComponent(Transform);
@@ -1945,7 +1953,12 @@
             gameLoop(timestamp) {
                 if (!this.running) return;
                 
-                const dt = timestamp - this.lastTime;
+                // Handle first frame - avoid massive delta
+                if (this.lastTime === 0) {
+                    this.lastTime = timestamp;
+                }
+                
+                const dt = Math.min(timestamp - this.lastTime, 100); // Cap at 100ms
                 this.lastTime = timestamp;
                 
                 // Fixed timestep with accumulator
