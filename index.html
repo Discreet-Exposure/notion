@@ -146,6 +146,42 @@
             100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
         
+        .shot-quality {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            font-weight: bold;
+            padding: 5px 15px;
+            border-radius: 5px;
+            display: none;
+            animation: shotQualityPop 0.3s ease-out;
+        }
+        
+        .shot-quality.perfect {
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+            background: rgba(0, 255, 0, 0.2);
+        }
+        
+        .shot-quality.good {
+            color: #ff0;
+            text-shadow: 0 0 10px #ff0;
+            background: rgba(255, 255, 0, 0.2);
+        }
+        
+        .shot-quality.poor {
+            color: #f44;
+            text-shadow: 0 0 10px #f44;
+            background: rgba(255, 68, 68, 0.2);
+        }
+        
+        @keyframes shotQualityPop {
+            0% { transform: translateX(-50%) scale(0.5); opacity: 0; }
+            100% { transform: translateX(-50%) scale(1); opacity: 1; }
+        }
+        
         #menuPanel {
             position: absolute;
             top: 0;
@@ -286,8 +322,8 @@
             position: absolute;
             left: -6px;
             right: -6px;
-            height: 16px;
-            background: rgba(0, 255, 0, 0.4);
+            height: 12px;
+            background: rgba(0, 255, 0, 0.5);
             border: 2px solid #0f0;
             border-radius: 3px;
             box-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
@@ -499,6 +535,7 @@
             <div id="ballStatus">🏀 LOOSE BALL!</div>
             
             <div id="feedbackPanel"></div>
+            <div id="shotQuality" class="shot-quality"></div>
             
             <div id="virtualJoystick" class="ui-element">
                 <div id="joystickKnob"></div>
@@ -2728,7 +2765,7 @@
                     // Position sweet spot zone (centered on optimal power)
                     const meterHeight = 150; // matches CSS
                     const spotPosition = optimalPower * meterHeight;
-                    const spotHeight = 16; // matches CSS
+                    const spotHeight = 12; // matches CSS
                     sweetSpot.style.bottom = `${spotPosition - spotHeight / 2}px`;
                     sweetSpot.style.display = 'block';
                 } else {
@@ -3281,27 +3318,31 @@
                 const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
                 const optimalPower = 0.45 + normalizedDist * 0.45;
                 
-                // Shot accuracy check
-                // Within 10% = perfect (always goes in)
-                // Within 25% = good (60% chance)
-                // Beyond 25% = poor (25% chance)
+                // Shot accuracy check - timing matters!
+                // Within 8% = perfect (always goes in)
+                // Within 20% = good (50% chance)
+                // Beyond 20% = poor (10% chance - very unlikely)
                 const powerError = Math.abs(power - optimalPower);
                 
-                this.perfectShot = powerError <= 0.10;
-                this.goodShot = powerError <= 0.25;
+                this.perfectShot = powerError <= 0.08;
+                this.goodShot = powerError <= 0.20;
                 this.shotPower = power;
                 
                 // Determine if shot will go in based on accuracy
+                // This is decided NOW, before any math question
                 let willScore = false;
                 if (this.perfectShot) {
-                    willScore = true; // Perfect shots always go in
+                    willScore = true; // Perfect timing = guaranteed make
                 } else if (this.goodShot) {
-                    willScore = Math.random() < 0.60; // 60% chance
+                    willScore = Math.random() < 0.50; // 50% chance for good timing
                 } else {
-                    willScore = Math.random() < 0.25; // 25% chance
+                    willScore = Math.random() < 0.10; // Only 10% for bad timing
                 }
                 
                 this.shotWillScore = willScore;
+                
+                // Show shot quality feedback
+                this.showShotQuality(this.perfectShot ? 'PERFECT!' : this.goodShot ? 'GOOD' : 'POOR');
                 
                 // Store start position for animation
                 this.shotStartX = ballT.x;
@@ -3530,6 +3571,28 @@
                 this.contestData = null;
                 
                 gameplayState.transition(this, 'FeedbackSub');
+            }
+            
+            // Show shot quality indicator
+            showShotQuality(quality) {
+                const indicator = document.getElementById('shotQuality');
+                indicator.textContent = quality;
+                indicator.className = 'shot-quality';
+                
+                if (quality === 'PERFECT!') {
+                    indicator.classList.add('perfect');
+                } else if (quality === 'GOOD') {
+                    indicator.classList.add('good');
+                } else {
+                    indicator.classList.add('poor');
+                }
+                
+                indicator.style.display = 'block';
+                
+                // Hide after 1 second
+                setTimeout(() => {
+                    indicator.style.display = 'none';
+                }, 1000);
             }
             
             createShotArc(startX, startY, made) {
