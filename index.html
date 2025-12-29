@@ -320,13 +320,13 @@
         
         #sweetSpot {
             position: absolute;
-            left: -6px;
-            right: -6px;
-            height: 5px;
-            background: rgba(0, 255, 0, 0.8);
-            border: 2px solid #0f0;
-            border-radius: 2px;
-            box-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
+            left: -8px;
+            right: -8px;
+            height: 36px;
+            background: rgba(0, 255, 0, 0.3);
+            border: 3px solid #0f0;
+            border-radius: 4px;
+            box-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
             z-index: 10;
             pointer-events: none;
         }
@@ -2845,9 +2845,10 @@
                     const optimalPower = 0.45 + normalizedDist * 0.45;
                     
                     // Position sweet spot zone (centered on optimal power)
+                    // 12% tolerance on a 0-1 scale = 24% of meter height
                     const meterHeight = 150; // matches CSS
                     const spotPosition = optimalPower * meterHeight;
-                    const spotHeight = 5; // matches CSS - very small target!
+                    const spotHeight = 36; // matches CSS - 24% of 150px
                     sweetSpot.style.bottom = `${spotPosition - spotHeight / 2}px`;
                     sweetSpot.style.display = 'block';
                 } else {
@@ -3400,36 +3401,28 @@
                 const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
                 const optimalPower = 0.45 + normalizedDist * 0.45;
                 
-                // Shot accuracy check - timing matters!
-                // Within 3% = perfect (always goes in) - VERY tight!
-                // Within 8% = good (25% chance)
-                // Beyond 8% = poor (NEVER goes in)
+                // Shot accuracy check - SIMPLE RULE:
+                // Inside the green zone = shot goes in
+                // Outside the green zone = shot ALWAYS misses
                 const powerError = Math.abs(power - optimalPower);
                 
-                this.perfectShot = powerError <= 0.03;
-                this.goodShot = powerError <= 0.08;
+                // 12% tolerance = reasonable sized green zone
+                this.perfectShot = powerError <= 0.12;
+                this.goodShot = false; // No "good" zone - only perfect or miss
                 this.shotPower = power;
                 this.powerError = powerError; // Store for debugging
                 this.optimalPower = optimalPower; // Store for debugging
                 
                 // Determine if shot will go in based on accuracy
-                // This is decided NOW, before any math question
-                let willScore = false;
-                if (this.perfectShot) {
-                    willScore = true; // Perfect timing = guaranteed make
-                } else if (this.goodShot) {
-                    willScore = Math.random() < 0.25; // Only 25% chance for good timing
-                } else {
-                    willScore = false; // Bad timing = NEVER goes in
-                }
+                // SIMPLE: In the zone = make, outside = miss
+                let willScore = this.perfectShot; // That's it!
                 
-                // Debug logging - VERY VERBOSE
-                const timingQuality = this.perfectShot ? 'PERFECT' : (this.goodShot ? 'GOOD' : 'POOR');
+                // Debug logging
                 console.log('=== SHOT TAKEN ===');
                 console.log('Power released at:', power.toFixed(3));
                 console.log('Optimal power was:', optimalPower.toFixed(3));
-                console.log('Error amount:', powerError.toFixed(3));
-                console.log('Timing quality:', timingQuality);
+                console.log('Error amount:', powerError.toFixed(3), '(max allowed: 0.12)');
+                console.log('In the zone:', this.perfectShot ? 'YES' : 'NO');
                 console.log('Will score:', willScore);
                 console.log('==================');
                 
@@ -3445,8 +3438,8 @@
                 
                 this.shotWillScore = willScore;
                 
-                // Show shot quality feedback
-                this.showShotQuality(this.perfectShot ? 'PERFECT!' : this.goodShot ? 'GOOD' : 'POOR');
+                // Show shot quality feedback - simple: in zone or not
+                this.showShotQuality(this.perfectShot ? 'PERFECT!' : 'MISS!');
                 
                 // Store start position for animation
                 this.shotStartX = ballT.x;
@@ -3492,23 +3485,19 @@
                 // Check if shot animation is complete
                 if (t >= 1) {
                     console.log('=== SHOT RESOLVING ===');
+                    console.log('In the zone (perfectShot):', this.perfectShot);
                     console.log('shotWillScore:', this.shotWillScore);
-                    console.log('perfectShot:', this.perfectShot);
-                    console.log('goodShot:', this.goodShot);
-                    console.log('======================');
                     
-                    // STRICT ENFORCEMENT: If timing was poor, FORCE a miss
-                    if (!this.perfectShot && !this.goodShot) {
-                        console.log('ENFORCING MISS: Poor timing detected at resolution');
+                    // STRICT ENFORCEMENT: If not in the zone, FORCE a miss
+                    if (!this.perfectShot) {
+                        console.log('ENFORCING MISS: Outside the zone');
                         this.shotWillScore = false;
                     }
                     
                     if (this.shotWillScore) {
-                        // Ball goes in!
                         console.log('>>> BASKET MADE <<<');
                         this.handleMadeBasket();
                     } else {
-                        // Ball misses - bounce off rim
                         console.log('>>> SHOT MISSED <<<');
                         this.audio.playRimHit();
                         this.handleMissedBasket();
@@ -3648,19 +3637,16 @@
                     case 'aiBlock':
                         // AI tried to block player's shot
                         if (correct) {
-                            // Player answered correctly - but shot outcome depends on TIMING
-                            // If timing was poor (outside the marked zone), shot MUST miss
+                            // Player answered correctly - but shot only goes in if timing was in the zone
                             this.lastAnswerCorrect = true;
                             this.audio.playCorrect();
                             
-                            // Enforce: poor timing = always miss, even with correct answer
-                            if (!this.perfectShot && !this.goodShot) {
-                                // Timing was outside the zone - shot misses
+                            // Enforce: outside the zone = always miss
+                            if (!this.perfectShot) {
                                 this.shotWillScore = false;
-                                console.log('Correct answer but POOR timing - shot will miss');
+                                console.log('Correct answer but OUTSIDE the zone - shot will miss');
                             } else {
-                                // Timing was in zone - use the pre-calculated outcome
-                                console.log('Correct answer with good timing - willScore:', this.shotWillScore);
+                                console.log('Correct answer AND in the zone - shot will score!');
                             }
                             this.ballInFlight = true;
                         } else {
@@ -3709,10 +3695,8 @@
                 
                 if (quality === 'PERFECT!') {
                     indicator.classList.add('perfect');
-                } else if (quality === 'GOOD') {
-                    indicator.classList.add('good');
                 } else {
-                    indicator.classList.add('poor');
+                    indicator.classList.add('poor'); // MISS! uses poor styling (red)
                 }
                 
                 indicator.style.display = 'block';
