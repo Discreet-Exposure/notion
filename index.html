@@ -284,12 +284,13 @@
         
         #sweetSpot {
             position: absolute;
-            left: -5px;
-            right: -5px;
-            height: 4px;
-            background: #0f0;
-            border-radius: 2px;
-            box-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
+            left: -8px;
+            right: -8px;
+            height: 30px;
+            background: rgba(0, 255, 0, 0.4);
+            border: 3px solid #0f0;
+            border-radius: 4px;
+            box-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
             z-index: 10;
             pointer-events: none;
         }
@@ -2712,10 +2713,11 @@
                     const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
                     const optimalPower = 0.45 + normalizedDist * 0.45;
                     
-                    // Position sweet spot (bottom percentage of meter height)
+                    // Position sweet spot zone (centered on optimal power)
                     const meterHeight = 150; // matches CSS
                     const spotPosition = optimalPower * meterHeight;
-                    sweetSpot.style.bottom = `${spotPosition - 2}px`;
+                    const spotHeight = 30; // matches CSS
+                    sweetSpot.style.bottom = `${spotPosition - spotHeight / 2}px`;
                     sweetSpot.style.display = 'block';
                 } else {
                     meter.style.display = 'none';
@@ -2970,7 +2972,15 @@
                 this.rimCollisionCooldown = 0;
                 this.bounceCount = 0;
                 this.perfectShot = false;
+                this.goodShot = false;
                 this.shotPower = 0;
+                this.shotWillScore = false;
+                this.shotProgress = 0;
+                this.shotDuration = 50;
+                this.shotStartX = 0;
+                this.shotStartY = 0;
+                this.shotTargetX = 0;
+                this.shotTargetY = 0;
                 
                 // Turn-based state
                 this.playerTurn = true; // Player starts with the ball
@@ -3084,7 +3094,15 @@
                 this.rimCollisionCooldown = 0;
                 this.bounceCount = 0;
                 this.perfectShot = false;
+                this.goodShot = false;
                 this.shotPower = 0;
+                this.shotWillScore = false;
+                this.shotProgress = 0;
+                this.shotDuration = 50;
+                this.shotStartX = 0;
+                this.shotStartY = 0;
+                this.shotTargetX = 0;
+                this.shotTargetY = 0;
                 
                 // Reset turn-based state
                 this.playerTurn = true;
@@ -3241,86 +3259,50 @@
                 const targetX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS;
                 const targetY = CONFIG.HOOP_HEIGHT;
                 
-                // Use player position for distance calculation (matches power meter)
-                const playerDx = targetX - playerT.x;
-                const playerDy = targetY - playerT.y;
-                const dist = Math.sqrt(playerDx*playerDx + playerDy*playerDy);
+                // Calculate optimal power based on player distance (matches power meter)
+                const dx = targetX - playerT.x;
+                const dy = targetY - playerT.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
                 
-                // Use ball position for trajectory calculation
-                const dx = targetX - ballT.x;
-                const dy = targetY - ballT.y;
-                const actualDist = Math.sqrt(dx*dx + dy*dy);
-                
-                // Calculate optimal power based on distance (same formula as power meter)
                 const minDist = 150;
                 const maxDist = 450;
                 const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
                 const optimalPower = 0.45 + normalizedDist * 0.45;
                 
-                // Check shot accuracy - MUCH more forgiving!
-                // Within 15% = perfect shot (guaranteed make)
-                // Within 30% = good shot (high chance)
-                // Beyond 30% = poor shot (low chance)
+                // VERY forgiving accuracy check
+                // Within 20% = perfect (always goes in)
+                // Within 40% = good (80% chance)
+                // Beyond 40% = okay (50% chance)
                 const powerError = Math.abs(power - optimalPower);
-                const perfectTolerance = 0.15; // 15% tolerance for perfect
-                const goodTolerance = 0.30;    // 30% tolerance for good
                 
-                this.perfectShot = powerError <= perfectTolerance;
-                this.goodShot = powerError <= goodTolerance;
+                this.perfectShot = powerError <= 0.20;
+                this.goodShot = powerError <= 0.40;
                 this.shotPower = power;
                 
-                // Simple, reliable trajectory calculation
-                // Use a fixed arc that scales with distance
-                const shotSpeed = 8 + power * 4; // Base speed + power bonus
-                
-                // Calculate angle to target with arc
-                // Higher arc for further shots
-                const baseAngle = Math.atan2(dy, dx);
-                const arcBoost = 0.3 + (actualDist / 500) * 0.2; // More arc for distance
-                const launchAngle = baseAngle - arcBoost;
-                
-                // Calculate velocities
-                const speedMultiplier = 1 + (actualDist / 400); // Faster for longer shots
-                const vx = Math.cos(launchAngle) * shotSpeed * speedMultiplier;
-                const vy = Math.sin(launchAngle) * shotSpeed * speedMultiplier - 2; // Upward bias
-                
+                // Determine if shot will go in based on accuracy
+                let willScore = false;
                 if (this.perfectShot) {
-                    // Perfect shot - aim directly at hoop with perfect arc
-                    const flightFrames = Math.max(30, actualDist / 6); // Frames to reach target
-                    const gravity = CONFIG.GRAVITY;
-                    
-                    // Calculate exact velocities to land in hoop
-                    ballV.vx = dx / flightFrames;
-                    ballV.vy = (dy - 0.5 * gravity * flightFrames * flightFrames) / flightFrames;
-                    
-                    // Clamp to reasonable values
-                    ballV.vx = Utils.clamp(ballV.vx, 2, 15);
-                    ballV.vy = Utils.clamp(ballV.vy, -15, -3);
+                    willScore = true; // Perfect shots always go in
                 } else if (this.goodShot) {
-                    // Good shot - small random error
-                    const errorScale = (powerError - perfectTolerance) / (goodTolerance - perfectTolerance);
-                    const maxError = errorScale * 2;
-                    
-                    ballV.vx = vx + (Math.random() - 0.5) * maxError;
-                    ballV.vy = vy + (Math.random() - 0.5) * maxError;
+                    willScore = Math.random() < 0.80; // 80% chance
                 } else {
-                    // Poor shot - larger error based on how bad the timing was
-                    const errorScale = Math.min(powerError * 3, 1);
-                    const maxError = 3 + errorScale * 4;
-                    
-                    // Over/under powered affects direction
-                    const overPowered = power > optimalPower;
-                    const directionBias = overPowered ? 1.5 : -1.5;
-                    
-                    ballV.vx = vx + directionBias + (Math.random() - 0.5) * maxError;
-                    ballV.vy = vy + (Math.random() - 0.5) * maxError;
+                    willScore = Math.random() < 0.50; // 50% chance
                 }
                 
-                // Safety clamps to prevent glitchy physics
-                ballV.vx = Utils.clamp(ballV.vx, -20, 20);
-                ballV.vy = Utils.clamp(ballV.vy, -20, 10);
+                this.shotWillScore = willScore;
                 
-                this.physics.addEntity(this.ball);
+                // Store start position for animation
+                this.shotStartX = ballT.x;
+                this.shotStartY = ballT.y;
+                this.shotTargetX = targetX;
+                this.shotTargetY = targetY;
+                this.shotProgress = 0;
+                this.shotDuration = 40 + dist / 10; // Frames for shot animation
+                
+                // Set simple velocity for visual (actual scoring is predetermined)
+                ballV.vx = 5;
+                ballV.vy = -8;
+                
                 this.audio.playBounce(1.5);
             }
             
@@ -3328,102 +3310,38 @@
                 const ballT = this.ball.getComponent(Transform);
                 const ballV = this.ball.getComponent(Velocity);
                 
-                const prevX = ballT.x;
-                const prevY = ballT.y;
+                // Simple arc animation - no complex physics
+                this.shotProgress += 1;
                 
-                // Apply physics
-                ballV.vy += CONFIG.GRAVITY;
-                ballT.x += ballV.vx;
-                ballT.y += ballV.vy;
+                // Calculate position along arc
+                const t = Math.min(this.shotProgress / this.shotDuration, 1);
                 
-                // For PERFECT shots, check if ball is near the hoop and going down
-                // Perfect shots always go in (no rim/backboard interference)
-                if (this.perfectShot) {
-                    const hoopX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS;
-                    const hoopY = CONFIG.HOOP_HEIGHT;
-                    const distToHoop = Utils.distance(ballT.x, ballT.y, hoopX, hoopY);
-                    
-                    // If ball is close to hoop and falling, it's a swish!
-                    if (distToHoop < 25 && ballV.vy > 0 && ballT.y > hoopY - 10) {
+                // Smooth easing
+                const easeT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                
+                // Linear interpolation for X
+                ballT.x = this.shotStartX + (this.shotTargetX - this.shotStartX) * easeT;
+                
+                // Arc for Y (parabola that peaks in the middle)
+                const arcHeight = 80 + (this.shotTargetX - this.shotStartX) * 0.3; // Higher arc for longer shots
+                const baseY = this.shotStartY + (this.shotTargetY - this.shotStartY) * easeT;
+                const arc = Math.sin(t * Math.PI) * arcHeight;
+                ballT.y = baseY - arc;
+                
+                // Update velocity for rotation visual
+                ballV.vx = 5;
+                ballV.vy = t < 0.5 ? -5 : 5;
+                
+                // Check if shot animation is complete
+                if (t >= 1) {
+                    if (this.shotWillScore) {
+                        // Ball goes in!
                         this.handleMadeBasket();
-                        return;
-                    }
-                    
-                    // Perfect shots don't collide with rim/backboard - they swish through
-                    // Only check floor for out of bounds
-                    const floorResult = this.physics.checkFloorCollision(ballT.y, ballV.vy);
-                    if (floorResult.hit) {
-                        // This shouldn't happen for perfect shots, but handle it
-                        ballT.y = floorResult.newY;
-                        ballV.vy = floorResult.newVy;
-                        ballV.vx *= 0.8;
-                        this.bounceCount++;
-                        if (this.bounceCount >= 3) {
-                            this.handleMissedBasket();
-                            return;
-                        }
-                    }
-                    
-                    // Check out of bounds
-                    if (ballT.x > CONFIG.COURT_WIDTH + 50 || ballT.x < -50) {
+                    } else {
+                        // Ball misses - bounce off rim
+                        this.audio.playRimHit();
                         this.handleMissedBasket();
                     }
-                    return;
-                }
-                
-                // For NON-PERFECT shots, use full physics simulation
-                // Check for basket FIRST (before other collisions)
-                if (this.physics.checkBasket(ballT.x, ballT.y, prevY)) {
-                    this.handleMadeBasket();
-                    return;
-                }
-                
-                // Check backboard collision
-                const backboardResult = this.physics.checkBackboardCollision(
-                    ballT.x, ballT.y, ballV.vx, ballV.vy
-                );
-                if (backboardResult.hit) {
-                    ballV.vx = backboardResult.newVx;
-                    ballV.vy = backboardResult.newVy;
-                    ballT.x = backboardResult.newX;
-                    this.audio.playRimHit();
-                }
-                
-                // Check rim collision
-                const rimResult = this.physics.checkRimCollision(
-                    ballT.x, ballT.y, ballV.vx, ballV.vy, prevX, prevY
-                );
-                if (rimResult.hit && !this.rimCollisionCooldown) {
-                    ballV.vx = rimResult.newVx;
-                    ballV.vy = rimResult.newVy;
-                    this.audio.playRimHit();
-                    this.rimCollisionCooldown = 10; // Frames to wait before another rim collision
-                }
-                
-                // Decrease rim collision cooldown
-                if (this.rimCollisionCooldown > 0) {
-                    this.rimCollisionCooldown--;
-                }
-                
-                // Check floor collision
-                const floorResult = this.physics.checkFloorCollision(ballT.y, ballV.vy);
-                if (floorResult.hit) {
-                    ballT.y = floorResult.newY;
-                    ballV.vy = floorResult.newVy;
-                    ballV.vx *= 0.8; // Friction
-                    this.audio.playBounce(0.5);
-                    this.bounceCount = (this.bounceCount || 0) + 1;
-                    
-                    // After 3 bounces or ball nearly stopped, end the shot
-                    if (this.bounceCount >= 3 || Math.abs(ballV.vy) < 2) {
-                        this.handleMissedBasket();
-                        return;
-                    }
-                }
-                
-                // Check if ball is out of bounds
-                if (ballT.x > CONFIG.COURT_WIDTH + 50 || ballT.x < -50) {
-                    this.handleMissedBasket();
                 }
             }
             
@@ -3559,17 +3477,16 @@
                     case 'aiBlock':
                         // AI tried to block player's shot
                         if (correct) {
-                            // Player answered correctly - shot continues
-                            // If it was a perfect shot, it will go in!
+                            // Player answered correctly - shot continues as planned
                             this.lastAnswerCorrect = true;
                             this.audio.playCorrect();
-                            // Ball is already in flight with perfectShot flag intact
+                            // shotWillScore is already set, shot continues
                         } else {
                             // Player failed - shot blocked, AI gets the ball
                             this.lastAnswerCorrect = false;
                             this.audio.playWrong();
                             this.ballInFlight = false;
-                            this.perfectShot = false; // Blocked shots aren't perfect
+                            this.shotWillScore = false;
                             this.switchPossession(); // Gives ball to AI
                         }
                         break;
