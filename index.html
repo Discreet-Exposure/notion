@@ -435,10 +435,11 @@
             margin-top: 0;
         }
         
-        /* Loose ball indicator */
+        /* Turn indicator */
         #ballStatus {
             position: absolute;
             top: 120px;
+            display: none; /* No longer used */
             left: 50%;
             transform: translateX(-50%);
             font-size: 18px;
@@ -846,9 +847,6 @@
                 switch(game.contestType) {
                     case 'aiBlock':
                         contextEl.textContent = '🛡️ DEFEND YOUR SHOT!';
-                        break;
-                    case 'aiSteal':
-                        contextEl.textContent = '🏀 KEEP THE BALL!';
                         break;
                     case 'playerBlock':
                         contextEl.textContent = '⚔️ BLOCK THEIR SHOT!';
@@ -1711,13 +1709,10 @@
                 
                 // Behavior tree priority:
                 // 1. If has ball -> shoot behavior
-                // 2. If ball is loose -> chase ball
-                // 3. Otherwise -> defend/try to block
+                // 2. Otherwise -> defend/try to block
                 
                 if (this.hasBall) {
                     this.executeShootBehavior(game, dt);
-                } else if (game.looseBall) {
-                    this.executeChaseBehavior(game, dt);
                 } else {
                     this.executeDefendBehavior(game, dt);
                 }
@@ -1747,12 +1742,13 @@
                     transform.x += (dx / dist) * speed;
                     transform.y += (dy / dist) * speed;
                 } else if (this.shootCooldown <= 0) {
-                    // Check if player is close enough to contest
+                    // Check if player is close enough to contest (only one block per turn)
                     const playerT = game.player.getComponent(Transform);
                     const distToPlayer = Utils.distance(transform.x, transform.y, playerT.x, playerT.y);
                     
-                    if (distToPlayer < CONFIG.BLOCK_RANGE) {
+                    if (distToPlayer < CONFIG.BLOCK_RANGE && !game.blockAttemptedThisTurn) {
                         // Player is contesting! Trigger contested shot
+                        game.blockAttemptedThisTurn = true;
                         game.triggerContestedMath('playerBlock', transform);
                     } else {
                         // Take uncontested shot
@@ -1761,50 +1757,10 @@
                 }
             }
             
-            executeChaseBehavior(game, dt) {
-                const aiPlayer = game.aiPlayer;
-                const transform = aiPlayer.getComponent(Transform);
-                const ballT = game.ball.getComponent(Transform);
-                const playerT = game.player.getComponent(Transform);
-                
-                this.isChasing = true;
-                
-                // Move toward ball
-                const dx = ballT.x - transform.x;
-                const dy = ballT.y - transform.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (dist > CONFIG.PICKUP_RANGE) {
-                    const speed = 3.5 * (1 + this.difficulty * 0.3);
-                    transform.x += (dx / dist) * speed;
-                    transform.y += (dy / dist) * speed;
-                    
-                    // Clamp to court
-                    transform.x = Utils.clamp(transform.x, 50, CONFIG.COURT_WIDTH - 50);
-                    transform.y = Utils.clamp(transform.y, CONFIG.COURT_HEIGHT * 0.4, CONFIG.COURT_HEIGHT - 60);
-                } else {
-                    // Close enough to pick up
-                    // Check if player is also nearby competing for it
-                    const playerDistToBall = Utils.distance(playerT.x, playerT.y, ballT.x, ballT.y);
-                    
-                    if (playerDistToBall < CONFIG.PICKUP_RANGE * 2) {
-                        // Both are close - contested pickup!
-                        game.triggerContestedMath('aiSteal', transform);
-                    } else {
-                        // AI gets free pickup - no contest
-                        this.giveBall(game);
-                        game.looseBall = false;
-                        document.getElementById('ballStatus').style.display = 'none';
-                    }
-                }
-            }
-            
             executeDefendBehavior(game, dt) {
                 const aiPlayer = game.aiPlayer;
                 const transform = aiPlayer.getComponent(Transform);
                 const playerT = game.player.getComponent(Transform);
-                
-                this.isChasing = false;
                 
                 // Dynamic defense position based on player location
                 const defenseX = Math.min(550, playerT.x + 80);
@@ -1819,14 +1775,7 @@
                     transform.x += (dx / dist) * speed;
                     transform.y += (dy / dist) * speed;
                 }
-                
-                // Check if we can attempt a block on player's shot
-                const distToPlayer = Utils.distance(transform.x, transform.y, playerT.x, playerT.y);
-                if (distToPlayer < CONFIG.BLOCK_RANGE && game.ballInFlight && this.blockCooldown <= 0) {
-                    // We're close and ball just launched - attempt block
-                    this.blockCooldown = 2000;
-                    game.triggerContestedMath('aiBlock', transform);
-                }
+                // Block attempts are handled in updateGameplay when player shoots
             }
             
             startShot(game, transform) {
@@ -1918,9 +1867,12 @@
                     game.audio.playCrowd();
                 } else {
                     game.audio.playRimHit();
-                    // Missed shot becomes loose ball
-                    game.setLooseBall(CONFIG.HOOP_X - 50, CONFIG.HOOP_HEIGHT + 100);
                 }
+                
+                // Switch possession to player
+                game.playerTurn = true;
+                game.blockAttemptedThisTurn = false;
+                game.resetBall();
                 
                 // Reset ball position off screen
                 this.ballPosition = { x: -100, y: -100 };
@@ -2352,23 +2304,6 @@
                 ctx.setLineDash([]);
             }
             
-            // Draw pulsing glow effect for loose balls
-            drawLooseBallGlow(x, y) {
-                const ctx = this.ctx;
-                const time = Date.now() / 150;
-                const pulseSize = 30 + Math.sin(time) * 8;
-                
-                const gradient = ctx.createRadialGradient(x, y, 0, x, y, pulseSize);
-                gradient.addColorStop(0, 'rgba(255, 215, 0, 0.5)');
-                gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.25)');
-                gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
-                
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            
             // Draw player avatar
             drawPlayer(x, y, color, isPlayer = true, facingRight = true) {
                 const ctx = this.ctx;
@@ -2748,12 +2683,12 @@
                 this.rimCollisionCooldown = 0;
                 this.bounceCount = 0;
                 
-                // Loose ball state
-                this.looseBall = false;
-                this.looseBallTimer = 0;
+                // Turn-based state
+                this.playerTurn = true; // Player starts with the ball
+                this.blockAttemptedThisTurn = false; // Only one block attempt per turn
                 
                 // Contest state
-                this.contestType = null; // 'aiBlock', 'aiSteal', 'playerBlock'
+                this.contestType = null; // 'aiBlock', 'playerBlock'
                 this.contestData = null;
                 
                 // Game loop
@@ -2860,15 +2795,14 @@
                 this.rimCollisionCooldown = 0;
                 this.bounceCount = 0;
                 
-                // Reset loose ball state
-                this.looseBall = false;
-                this.looseBallTimer = 0;
+                // Reset turn-based state
+                this.playerTurn = true;
+                this.blockAttemptedThisTurn = false;
                 document.getElementById('ballStatus').style.display = 'none';
                 
                 // Reset contest state
                 this.contestType = null;
                 this.contestData = null;
-                this.pausedBallState = null;
                 
                 // Reset positions
                 const playerT = this.player.getComponent(Transform);
@@ -2957,26 +2891,13 @@
                 playerT.x = Utils.clamp(playerT.x, 50, CONFIG.COURT_WIDTH - 100);
                 playerT.y = Utils.clamp(playerT.y, CONFIG.COURT_HEIGHT * 0.4, CONFIG.COURT_HEIGHT - 60);
                 
-                // Ball follows player (only if player has the ball)
+                // Ball follows player (only if it's player's turn and not in flight)
                 const ballT = this.ball.getComponent(Transform);
-                const playerHasBall = !this.ballInFlight && !this.ai.hasBall && !this.looseBall;
+                const playerHasBall = this.playerTurn && !this.ballInFlight && !this.ai.hasBall;
                 
                 if (playerHasBall) {
                     ballT.x = playerT.x + 30;
                     ballT.y = playerT.y - 30;
-                }
-                
-                // Check if player can pick up loose ball
-                if (this.looseBall) {
-                    this.checkLooseBallPickup();
-                    this.looseBallTimer += dt;
-                    
-                    // Auto-give to player after 5 seconds if neither picked it up
-                    if (this.looseBallTimer > 5000) {
-                        this.looseBall = false;
-                        document.getElementById('ballStatus').style.display = 'none';
-                        this.resetBall();
-                    }
                 }
                 
                 // Handle shooting (only if player has ball)
@@ -2984,13 +2905,13 @@
                 this.renderer.drawPowerMeter(power, playerT.x, playerT.y);
                 
                 if (!this.input.shooting && power > 0 && playerHasBall) {
-                    // Check if AI is close enough to contest
+                    // Check if AI is close enough to contest (only one block per turn)
                     const aiT = this.aiPlayer.getComponent(Transform);
                     const distToAI = Utils.distance(playerT.x, playerT.y, aiT.x, aiT.y);
                     
-                    if (distToAI < CONFIG.BLOCK_RANGE && this.ai.blockCooldown <= 0) {
+                    if (distToAI < CONFIG.BLOCK_RANGE && !this.blockAttemptedThisTurn) {
                         // AI is contesting! Trigger contested shot
-                        this.ai.blockCooldown = 2000;
+                        this.blockAttemptedThisTurn = true;
                         this.takeShot(power); // Start the shot
                         this.triggerContestedMath('aiBlock', { power });
                     } else {
@@ -3131,12 +3052,16 @@
                 this.audio.playSwish();
                 this.audio.playCrowd();
                 
-                // Go to math challenge
-                const gameplayState = this.stateMachine.children.get('Gameplay');
-                gameplayState.transition(this, 'MathSub');
+                // Update streak
+                this.streak++;
+                if (this.streak >= 3) {
+                    this.isOnFire = true;
+                    document.getElementById('streakIndicator').style.display = 'block';
+                    document.getElementById('streakIndicator').textContent = `🔥 ON FIRE! x${this.streak}`;
+                }
                 
-                // Reset ball position
-                this.resetBall();
+                // Switch to AI's turn
+                this.switchPossession();
             }
             
             handleMissedBasket() {
@@ -3145,12 +3070,24 @@
                 this.isOnFire = false;
                 document.getElementById('streakIndicator').style.display = 'none';
                 
-                // Give ball to AI sometimes
-                if (Math.random() > 0.5) {
+                // Switch possession to other player
+                this.switchPossession();
+            }
+            
+            // Switch possession between players
+            switchPossession() {
+                this.playerTurn = !this.playerTurn;
+                this.blockAttemptedThisTurn = false; // Reset block attempt for new turn
+                
+                if (this.playerTurn) {
+                    // Give ball to player
+                    this.ai.hasBall = false;
+                    this.ai.isShooting = false;
+                    this.resetBall();
+                } else {
+                    // Give ball to AI
                     this.ai.giveBall(this);
                 }
-                
-                this.resetBall();
             }
             
             resetBall() {
@@ -3223,20 +3160,6 @@
                 this.contestType = type;
                 this.contestData = data;
                 
-                // Pause current action based on type
-                if (type === 'aiBlock') {
-                    // AI is trying to block player's shot
-                    // Ball is in flight, pause it
-                    this.pausedBallState = {
-                        inFlight: this.ballInFlight,
-                        x: this.ball.getComponent(Transform).x,
-                        y: this.ball.getComponent(Transform).y,
-                        vx: this.ball.getComponent(Velocity).vx,
-                        vy: this.ball.getComponent(Velocity).vy
-                    };
-                    this.ballInFlight = false;
-                }
-                
                 const gameplayState = this.stateMachine.children.get('Gameplay');
                 gameplayState.transition(this, 'ContestSub');
             }
@@ -3253,52 +3176,28 @@
                             // Player answered correctly - shot continues
                             this.lastAnswerCorrect = true;
                             this.audio.playCorrect();
-                            // Resume ball flight
-                            if (this.pausedBallState) {
-                                const ballT = this.ball.getComponent(Transform);
-                                const ballV = this.ball.getComponent(Velocity);
-                                ballT.x = this.pausedBallState.x;
-                                ballT.y = this.pausedBallState.y;
-                                ballV.vx = this.pausedBallState.vx;
-                                ballV.vy = this.pausedBallState.vy;
-                                this.ballInFlight = true;
-                            }
+                            // Ball is already in flight, just resume gameplay
+                            // The shot will resolve normally (make or miss)
                         } else {
-                            // Player failed - shot blocked
+                            // Player failed - shot blocked, AI gets the ball
                             this.lastAnswerCorrect = false;
                             this.audio.playWrong();
-                            this.handleMissedBasket();
-                        }
-                        break;
-                        
-                    case 'aiSteal':
-                        // AI is trying to steal/pick up loose ball
-                        if (correct) {
-                            // Player keeps the ball
-                            this.lastAnswerCorrect = true;
-                            this.audio.playCorrect();
-                            this.looseBall = false;
-                            document.getElementById('ballStatus').style.display = 'none';
-                            // Ball back to player
-                            this.resetBall();
-                        } else {
-                            // AI steals the ball
-                            this.lastAnswerCorrect = false;
-                            this.audio.playWrong();
-                            this.looseBall = false;
-                            document.getElementById('ballStatus').style.display = 'none';
-                            this.ai.giveBall(this);
+                            this.ballInFlight = false;
+                            this.switchPossession(); // Gives ball to AI
                         }
                         break;
                         
                     case 'playerBlock':
                         // Player is trying to block AI's shot
                         if (correct) {
-                            // Player blocks successfully!
+                            // Player blocks successfully! Player gets the ball
                             this.lastAnswerCorrect = true;
                             this.audio.playCorrect();
                             this.ai.blockShot();
-                            // Player gets the ball
+                            this.ai.hasBall = false;
+                            this.ai.isShooting = false;
+                            this.playerTurn = true;
+                            this.blockAttemptedThisTurn = false;
                             this.resetBall();
                         } else {
                             // Block failed - AI shot continues
@@ -3311,44 +3210,8 @@
                 
                 this.contestType = null;
                 this.contestData = null;
-                this.pausedBallState = null;
                 
                 gameplayState.transition(this, 'FeedbackSub');
-            }
-            
-            // Set ball as loose (can be picked up by either player)
-            setLooseBall(x, y) {
-                this.looseBall = true;
-                this.looseBallTimer = 0;
-                
-                const ballT = this.ball.getComponent(Transform);
-                const ballV = this.ball.getComponent(Velocity);
-                
-                ballT.x = x;
-                ballT.y = Math.min(y, CONFIG.COURT_HEIGHT - 60);
-                ballV.vx = 0;
-                ballV.vy = 0;
-                
-                this.ballInFlight = false;
-                document.getElementById('ballStatus').style.display = 'block';
-            }
-            
-            // Check if player picks up loose ball
-            checkLooseBallPickup() {
-                if (!this.looseBall) return;
-                
-                const playerT = this.player.getComponent(Transform);
-                const ballT = this.ball.getComponent(Transform);
-                
-                const dist = Utils.distance(playerT.x, playerT.y, ballT.x, ballT.y);
-                
-                if (dist < CONFIG.PICKUP_RANGE) {
-                    // Player picks up the ball
-                    this.looseBall = false;
-                    document.getElementById('ballStatus').style.display = 'none';
-                    this.resetBall();
-                    this.audio.playBounce(0.8);
-                }
             }
             
             createShotArc(startX, startY, made) {
@@ -3413,16 +3276,15 @@
                         data: { t: aiT, facing: aiFacing, hasBall: this.ai.hasBall } 
                     });
                     
-                    // Player's ball (only if player has it, it's in flight, or it's loose)
+                    // Player's ball (only if player has it or it's in flight)
                     const playerHasBall = !this.ai.hasBall && !this.ai.isShooting;
-                    if (playerHasBall || this.ballInFlight || this.looseBall) {
+                    if (playerHasBall || this.ballInFlight) {
                         entities.push({ 
                             type: 'ball', 
                             y: ballT.y, 
                             data: { 
                                 t: ballT, 
-                                inFlight: this.ballInFlight,
-                                isLoose: this.looseBall
+                                inFlight: this.ballInFlight
                             } 
                         });
                     }
@@ -3472,14 +3334,6 @@
                             const rotation = entity.data.inFlight 
                                 ? performance.now() / 100 
                                 : 0;
-                            
-                            // Add glow effect for loose balls
-                            if (entity.data.isLoose) {
-                                this.renderer.drawLooseBallGlow(
-                                    entity.data.t.x,
-                                    entity.data.t.y
-                                );
-                            }
                             
                             this.renderer.drawBall(
                                 entity.data.t.x, 
