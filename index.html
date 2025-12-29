@@ -282,6 +282,27 @@
             transition: height 0.05s;
         }
         
+        #sweetSpot {
+            position: absolute;
+            left: -5px;
+            right: -5px;
+            height: 4px;
+            background: #0f0;
+            border-radius: 2px;
+            box-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        #sweetSpotLabel {
+            position: absolute;
+            right: 40px;
+            color: #0f0;
+            font-size: 10px;
+            text-shadow: 0 0 4px #0f0;
+            white-space: nowrap;
+        }
+        
         #streakIndicator {
             position: absolute;
             top: 80px;
@@ -485,6 +506,7 @@
             
             <div id="powerMeter">
                 <div id="powerFill"></div>
+                <div id="sweetSpot"><span id="sweetSpotLabel">PERFECT</span></div>
             </div>
         </div>
         
@@ -1743,6 +1765,7 @@
                 const aiPlayer = game.aiPlayer;
                 const transform = aiPlayer.getComponent(Transform);
                 const ballT = game.ball.getComponent(Transform);
+                const playerT = game.player.getComponent(Transform);
                 
                 this.isChasing = true;
                 
@@ -1760,8 +1783,19 @@
                     transform.x = Utils.clamp(transform.x, 50, CONFIG.COURT_WIDTH - 50);
                     transform.y = Utils.clamp(transform.y, CONFIG.COURT_HEIGHT * 0.4, CONFIG.COURT_HEIGHT - 60);
                 } else {
-                    // Close enough to pick up - trigger contested math
-                    game.triggerContestedMath('aiSteal', transform);
+                    // Close enough to pick up
+                    // Check if player is also nearby competing for it
+                    const playerDistToBall = Utils.distance(playerT.x, playerT.y, ballT.x, ballT.y);
+                    
+                    if (playerDistToBall < CONFIG.PICKUP_RANGE * 2) {
+                        // Both are close - contested pickup!
+                        game.triggerContestedMath('aiSteal', transform);
+                    } else {
+                        // AI gets free pickup - no contest
+                        this.giveBall(game);
+                        game.looseBall = false;
+                        document.getElementById('ballStatus').style.display = 'none';
+                    }
                 }
             }
             
@@ -2432,16 +2466,38 @@
                 ctx.setLineDash([]);
             }
             
-            // Draw power meter
-            drawPowerMeter(power) {
+            // Draw power meter with sweet spot indicator
+            drawPowerMeter(power, playerX = 0, playerY = 0) {
                 const meter = document.getElementById('powerMeter');
                 const fill = document.getElementById('powerFill');
+                const sweetSpot = document.getElementById('sweetSpot');
                 
                 if (power > 0) {
                     meter.style.display = 'block';
                     fill.style.height = `${power * 100}%`;
+                    
+                    // Calculate optimal power based on distance to hoop
+                    const dx = CONFIG.HOOP_X - playerX;
+                    const dy = CONFIG.HOOP_HEIGHT - playerY;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    // Optimal power scales with distance
+                    // Close shots (dist ~200): power ~0.5
+                    // Medium shots (dist ~300): power ~0.7
+                    // Far shots (dist ~400): power ~0.85
+                    const minDist = 150;
+                    const maxDist = 450;
+                    const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
+                    const optimalPower = 0.45 + normalizedDist * 0.45;
+                    
+                    // Position sweet spot (bottom percentage of meter height)
+                    const meterHeight = 150; // matches CSS
+                    const spotPosition = optimalPower * meterHeight;
+                    sweetSpot.style.bottom = `${spotPosition - 2}px`;
+                    sweetSpot.style.display = 'block';
                 } else {
                     meter.style.display = 'none';
+                    sweetSpot.style.display = 'none';
                 }
             }
             
@@ -2925,7 +2981,7 @@
                 
                 // Handle shooting (only if player has ball)
                 const power = this.input.updateShootPower(dt);
-                this.renderer.drawPowerMeter(power);
+                this.renderer.drawPowerMeter(power, playerT.x, playerT.y);
                 
                 if (!this.input.shooting && power > 0 && playerHasBall) {
                     // Check if AI is close enough to contest
@@ -2977,14 +3033,18 @@
                 const dy = targetY - ballT.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
+                // Calculate optimal power based on distance (same formula as power meter)
+                const minDist = 150;
+                const maxDist = 450;
+                const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
+                const optimalPower = 0.45 + normalizedDist * 0.45;
+                
                 // Add some randomness based on power accuracy
-                const optimalPower = 0.7;
                 const powerError = Math.abs(power - optimalPower) * 2;
                 const accuracy = 1 - powerError * 0.5;
                 
                 // Assisted aiming with error
                 const aimError = (1 - accuracy) * 50;
-                const targetXAdjusted = targetX + (Math.random() - 0.5) * aimError;
                 
                 const shotSpeed = 8 + power * 6;
                 const angle = Math.atan2(dy - dist * 0.5, dx);
