@@ -2236,89 +2236,171 @@
                 ctx.lineWidth = 4;
                 ctx.strokeRect(20, h * 0.36, w - 40, h * 0.6);
                 
-                // === COURT MARKINGS ===
+                // === COURT MARKINGS (Accurate NBA-style) ===
+                // Court dimensions in our scale:
+                // Full court: x=20 to x=w-20, y=courtTop to y=courtBottom
+                const courtLeft = 20;
+                const courtRight = w - 20;
+                const courtTop = h * 0.36;
+                const courtBottom = h * 0.96;
+                const courtWidth = courtRight - courtLeft;
+                const courtHeight = courtBottom - courtTop;
+                const courtCenterY = courtTop + courtHeight / 2;
+                
+                // Baseline (under basket) positions
+                const rightBaseline = courtRight;
+                const leftBaseline = courtLeft;
+                
+                // Key dimensions (scaled to court)
+                const keyWidth = courtHeight * 0.32; // 16ft of 50ft court width
+                const keyDepth = courtWidth * 0.20;  // 19ft of 94ft court length
+                const freeThrowRadius = keyWidth / 2;
+                const threePointRadius = courtWidth * 0.25; // ~23.75ft scaled
+                const restrictedRadius = courtWidth * 0.045; // 4ft arc
+                const centerCircleRadius = keyWidth / 2;
+                
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 3;
                 
-                // Center court line
+                // === CENTER COURT ===
+                // Half-court line
                 ctx.beginPath();
-                ctx.moveTo(w / 2, h * 0.36);
-                ctx.lineTo(w / 2, h * 0.96);
+                ctx.moveTo(w / 2, courtTop);
+                ctx.lineTo(w / 2, courtBottom);
                 ctx.stroke();
                 
-                // Center circle
+                // Center circle (jump ball)
                 ctx.beginPath();
-                ctx.ellipse(w / 2, h * 0.65, 70, 35, 0, 0, Math.PI * 2);
+                ctx.ellipse(w / 2, courtCenterY, centerCircleRadius, centerCircleRadius * 0.5, 0, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Center circle inner
+                // Center circle inner (2ft radius)
                 ctx.beginPath();
-                ctx.ellipse(w / 2, h * 0.65, 25, 12, 0, 0, Math.PI * 2);
+                ctx.ellipse(w / 2, courtCenterY, 15, 7, 0, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Team logo area (center court)
-                ctx.fillStyle = 'rgba(227, 66, 96, 0.3)';
+                // Team logo area
+                ctx.fillStyle = 'rgba(227, 66, 96, 0.2)';
                 ctx.beginPath();
-                ctx.ellipse(w / 2, h * 0.65, 50, 25, 0, 0, Math.PI * 2);
+                ctx.ellipse(w / 2, courtCenterY, centerCircleRadius * 0.7, centerCircleRadius * 0.35, 0, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // === RIGHT SIDE (HOOP SIDE) ===
-                // Three-point arc
-                ctx.beginPath();
-                ctx.ellipse(w - 30, h * 0.65, 200, 100, 0, Math.PI * 0.55, Math.PI * 1.45);
-                ctx.stroke();
+                // === RIGHT SIDE (Main hoop side) ===
+                const rightBackboard = rightBaseline - 5;
+                const rightFreeThrow = rightBaseline - keyDepth;
+                const rightKeyTop = courtCenterY - keyWidth / 2;
+                const rightKeyBottom = courtCenterY + keyWidth / 2;
                 
-                // Three-point straight lines
-                ctx.beginPath();
-                ctx.moveTo(w - 30, h * 0.36);
-                ctx.lineTo(w - 30, h * 0.42);
-                ctx.moveTo(w - 30, h * 0.88);
-                ctx.lineTo(w - 30, h * 0.96);
-                ctx.stroke();
-                
-                // Key/Paint area
-                ctx.fillStyle = 'rgba(67, 97, 238, 0.25)';
-                ctx.fillRect(w - 190, h * 0.42, 170, h * 0.46);
+                // Paint/Key area
+                ctx.fillStyle = 'rgba(200, 50, 80, 0.25)';
+                ctx.fillRect(rightFreeThrow, rightKeyTop, keyDepth, keyWidth);
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 3;
-                ctx.strokeRect(w - 190, h * 0.42, 170, h * 0.46);
+                ctx.strokeRect(rightFreeThrow, rightKeyTop, keyDepth, keyWidth);
                 
-                // Free throw circle
+                // Free throw circle (top half solid, bottom half dashed)
                 ctx.beginPath();
-                ctx.ellipse(w - 190, h * 0.65, 60, 30, 0, Math.PI * 0.5, Math.PI * 1.5);
+                ctx.ellipse(rightFreeThrow, courtCenterY, freeThrowRadius * 0.5, freeThrowRadius, 0, -Math.PI * 0.5, Math.PI * 0.5);
                 ctx.stroke();
+                
                 ctx.setLineDash([8, 8]);
                 ctx.beginPath();
-                ctx.ellipse(w - 190, h * 0.65, 60, 30, 0, Math.PI * 1.5, Math.PI * 0.5);
+                ctx.ellipse(rightFreeThrow, courtCenterY, freeThrowRadius * 0.5, freeThrowRadius, 0, Math.PI * 0.5, Math.PI * 1.5);
                 ctx.stroke();
                 ctx.setLineDash([]);
                 
-                // Restricted area arc
+                // Lane/key hash marks (block markers)
+                const hashSpacing = keyWidth / 4;
+                for (let i = 1; i <= 3; i++) {
+                    const hashY1 = rightKeyTop + i * hashSpacing;
+                    const hashY2 = rightKeyBottom - i * hashSpacing + hashSpacing;
+                    // Top side hashes
+                    ctx.beginPath();
+                    ctx.moveTo(rightFreeThrow + keyDepth * 0.15, rightKeyTop - 8);
+                    ctx.lineTo(rightFreeThrow + keyDepth * 0.15, rightKeyTop);
+                    ctx.stroke();
+                }
+                
+                // Three-point line
                 ctx.beginPath();
-                ctx.ellipse(w - 30, h * 0.65, 45, 22, 0, Math.PI * 0.55, Math.PI * 1.45);
+                // Corner three (straight line portions)
+                const threeCornerDist = courtWidth * 0.15; // Corner three distance
+                ctx.moveTo(rightBaseline - threeCornerDist, courtTop);
+                ctx.lineTo(rightBaseline - threeCornerDist, rightKeyTop - 30);
+                // Arc portion
                 ctx.stroke();
                 
-                // === LEFT SIDE (OPPOSITE HOOP) ===
-                // Three-point arc
                 ctx.beginPath();
-                ctx.ellipse(30, h * 0.65, 200, 100, 0, -Math.PI * 0.45, Math.PI * 0.45);
+                ctx.ellipse(rightBackboard, courtCenterY, threePointRadius, threePointRadius * 0.6, 0, Math.PI * 0.6, Math.PI * 1.4);
                 ctx.stroke();
                 
-                // Key/Paint area
-                ctx.fillStyle = 'rgba(67, 97, 238, 0.25)';
-                ctx.fillRect(20, h * 0.42, 170, h * 0.46);
+                // Bottom corner three
+                ctx.beginPath();
+                ctx.moveTo(rightBaseline - threeCornerDist, courtBottom);
+                ctx.lineTo(rightBaseline - threeCornerDist, rightKeyBottom + 30);
+                ctx.stroke();
+                
+                // Restricted area (semi-circle under basket)
+                ctx.beginPath();
+                ctx.ellipse(rightBackboard, courtCenterY, restrictedRadius, restrictedRadius * 0.5, 0, Math.PI * 0.5, Math.PI * 1.5);
+                ctx.stroke();
+                
+                // Backboard line
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(rightBackboard, courtCenterY - 35);
+                ctx.lineTo(rightBackboard, courtCenterY + 35);
+                ctx.stroke();
+                ctx.lineWidth = 3;
+                
+                // === LEFT SIDE (Opposite basket) ===
+                const leftBackboard = leftBaseline + 5;
+                const leftFreeThrow = leftBaseline + keyDepth;
+                
+                // Paint/Key area
+                ctx.fillStyle = 'rgba(200, 50, 80, 0.25)';
+                ctx.fillRect(leftBaseline, rightKeyTop, keyDepth, keyWidth);
                 ctx.strokeStyle = '#fff';
-                ctx.strokeRect(20, h * 0.42, 170, h * 0.46);
+                ctx.strokeRect(leftBaseline, rightKeyTop, keyDepth, keyWidth);
                 
                 // Free throw circle
                 ctx.beginPath();
-                ctx.ellipse(190, h * 0.65, 60, 30, 0, -Math.PI * 0.5, Math.PI * 0.5);
+                ctx.ellipse(leftFreeThrow, courtCenterY, freeThrowRadius * 0.5, freeThrowRadius, 0, Math.PI * 0.5, Math.PI * 1.5);
                 ctx.stroke();
+                
                 ctx.setLineDash([8, 8]);
                 ctx.beginPath();
-                ctx.ellipse(190, h * 0.65, 60, 30, 0, Math.PI * 0.5, -Math.PI * 0.5);
+                ctx.ellipse(leftFreeThrow, courtCenterY, freeThrowRadius * 0.5, freeThrowRadius, 0, -Math.PI * 0.5, Math.PI * 0.5);
                 ctx.stroke();
                 ctx.setLineDash([]);
+                
+                // Three-point line (left side)
+                ctx.beginPath();
+                ctx.moveTo(leftBaseline + threeCornerDist, courtTop);
+                ctx.lineTo(leftBaseline + threeCornerDist, rightKeyTop - 30);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.ellipse(leftBackboard, courtCenterY, threePointRadius, threePointRadius * 0.6, 0, -Math.PI * 0.4, Math.PI * 0.4);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(leftBaseline + threeCornerDist, courtBottom);
+                ctx.lineTo(leftBaseline + threeCornerDist, rightKeyBottom + 30);
+                ctx.stroke();
+                
+                // Restricted area
+                ctx.beginPath();
+                ctx.ellipse(leftBackboard, courtCenterY, restrictedRadius, restrictedRadius * 0.5, 0, -Math.PI * 0.5, Math.PI * 0.5);
+                ctx.stroke();
+                
+                // Backboard line
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(leftBackboard, courtCenterY - 35);
+                ctx.lineTo(leftBackboard, courtCenterY + 35);
+                ctx.stroke();
+                ctx.lineWidth = 3;
                 
                 // Sideline text
                 ctx.save();
