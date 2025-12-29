@@ -341,6 +341,105 @@
             font-size: 14px;
             text-align: center;
         }
+        
+        /* Contested Math Panel */
+        #mathPanel.contested {
+            border-color: #ff9500;
+            box-shadow: 0 0 30px rgba(255, 149, 0, 0.7);
+        }
+        
+        #mathContext {
+            font-size: 18px;
+            color: #ff9500;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        #mathPanel:not(.contested) #mathContext {
+            display: none;
+        }
+        
+        /* Standards Toggle Panel */
+        #standardsPanel {
+            margin-top: 20px;
+            max-width: 600px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .standards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            text-align: left;
+        }
+        
+        .standard-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        
+        .standard-toggle:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .standard-toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #e94560;
+        }
+        
+        .standard-category {
+            grid-column: 1 / -1;
+            color: #e94560;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(233, 69, 96, 0.3);
+        }
+        
+        .standard-category:first-child {
+            margin-top: 0;
+        }
+        
+        /* Loose ball indicator */
+        #ballStatus {
+            position: absolute;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+            display: none;
+        }
+        
+        /* Block indicator */
+        .block-warning {
+            position: absolute;
+            font-size: 24px;
+            color: #ff4444;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff4444;
+            animation: pulse 0.3s infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { opacity: 0.7; transform: scale(1); }
+            to { opacity: 1; transform: scale(1.1); }
+        }
     </style>
 </head>
 <body>
@@ -363,6 +462,7 @@
             <div id="streakIndicator">🔥 ON FIRE! 🔥</div>
             
             <div id="mathPanel">
+                <div id="mathContext">⚔️ CONTESTED!</div>
                 <div id="timer">10</div>
                 <div id="mathProblem">12 + 8 = ?</div>
                 <div id="answerOptions">
@@ -372,6 +472,8 @@
                     <button class="answer-btn ui-element" data-index="3">19</button>
                 </div>
             </div>
+            
+            <div id="ballStatus">🏀 LOOSE BALL!</div>
             
             <div id="feedbackPanel"></div>
             
@@ -391,14 +493,59 @@
             <div id="gameSubtitle">Basketball meets Mathematics!</div>
             <button class="menu-btn ui-element" id="startBtn">START GAME</button>
             <div id="gradeSelect">
-                <button class="grade-btn ui-element selected" data-grade="2">Grade 2</button>
-                <button class="grade-btn ui-element" data-grade="3">Grade 3</button>
+                <button class="grade-btn ui-element selected" data-grade="3">Grade 3</button>
                 <button class="grade-btn ui-element" data-grade="4">Grade 4</button>
                 <button class="grade-btn ui-element" data-grade="5">Grade 5</button>
             </div>
+            <div id="standardsPanel" class="ui-element">
+                <div class="standards-grid">
+                    <div class="standard-category">Grade 3 - Operations & Algebraic Thinking (3.OA)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.OA.A" checked> Multiplication & Division</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.OA.B" checked> Division as Unknown Factor</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.OA.C" checked> Multiply/Divide within 100</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.OA.D" checked> Two-step Word Problems</label>
+                    
+                    <div class="standard-category">Grade 3 - Number & Base Ten (3.NBT)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.NBT.A" checked> Round to Nearest 10/100</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.NBT.B" checked> Add/Subtract within 1000</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.NBT.C" checked> Multiply by Multiples of 10</label>
+                    
+                    <div class="standard-category">Grade 3 - Fractions (3.NF)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="3.NF.A" checked> Unit Fractions</label>
+                    
+                    <div class="standard-category">Grade 4 - Operations (4.OA)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.OA.A" checked> Multiplicative Comparisons</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.OA.B" checked> Multi-step Word Problems</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.OA.C" checked> Factors & Multiples</label>
+                    
+                    <div class="standard-category">Grade 4 - Number & Base Ten (4.NBT)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.NBT.A" checked> Place Value Understanding</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.NBT.B" checked> Multi-digit Arithmetic</label>
+                    
+                    <div class="standard-category">Grade 4 - Fractions (4.NF)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.NF.A" checked> Equivalent Fractions</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.NF.B" checked> Compare Fractions</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="4.NF.C" checked> Add/Subtract Fractions</label>
+                    
+                    <div class="standard-category">Grade 5 - Operations (5.OA)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="5.OA.A" checked> Order of Operations</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="5.OA.B" checked> Numerical Patterns</label>
+                    
+                    <div class="standard-category">Grade 5 - Number & Base Ten (5.NBT)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="5.NBT.A" checked> Powers of 10</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="5.NBT.B" checked> Decimal Operations</label>
+                    
+                    <div class="standard-category">Grade 5 - Fractions (5.NF)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="5.NF.A" checked> Add/Subtract Unlike Fractions</label>
+                    <label class="standard-toggle"><input type="checkbox" data-std="5.NF.B" checked> Multiply/Divide Fractions</label>
+                    
+                    <div class="standard-category">Grade 5 - Geometry (5.G)</div>
+                    <label class="standard-toggle"><input type="checkbox" data-std="5.G.A" checked> Coordinate Graphing</label>
+                </div>
+            </div>
             <div id="instructions">
                 Use WASD/Arrow keys to move, SPACE to shoot<br>
-                Touch controls enabled on mobile
+                Block opponents by getting close! Touch controls on mobile
             </div>
         </div>
         
@@ -440,8 +587,12 @@
             NET_SEGMENTS: 8,
             GAME_DURATION: 60,
             MATH_TIME_LIMIT: 10,
+            CONTEST_TIME_LIMIT: 6,
             STREAK_FOR_FIRE: 3,
-            TURBO_MULTIPLIER: 1.5
+            TURBO_MULTIPLIER: 1.5,
+            BLOCK_RANGE: 80,          // Distance for blocking
+            STEAL_RANGE: 50,          // Distance for stealing attempt
+            PICKUP_RANGE: 40          // Distance to pick up loose ball
         };
 
         // ========================================================================
@@ -632,6 +783,7 @@
                 this.addChild(new PlaySubState());
                 this.addChild(new MathSubState());
                 this.addChild(new FeedbackSubState());
+                this.addChild(new ContestSubState());
             }
             
             enter(game) {
@@ -654,6 +806,50 @@
             update(game, dt) {
                 if (this.currentChild) {
                     this.currentChild.update(game, dt);
+                }
+            }
+        }
+        
+        // Contest Sub-State (contested math for blocks/steals)
+        class ContestSubState extends State {
+            constructor() { super('ContestSub'); }
+            
+            enter(game) {
+                game.generateMathProblem();
+                document.getElementById('mathPanel').classList.add('active');
+                document.getElementById('mathPanel').classList.add('contested');
+                
+                // Set context message based on contest type
+                const contextEl = document.getElementById('mathContext');
+                switch(game.contestType) {
+                    case 'aiBlock':
+                        contextEl.textContent = '🛡️ DEFEND YOUR SHOT!';
+                        break;
+                    case 'aiSteal':
+                        contextEl.textContent = '🏀 KEEP THE BALL!';
+                        break;
+                    case 'playerBlock':
+                        contextEl.textContent = '⚔️ BLOCK THEIR SHOT!';
+                        break;
+                    default:
+                        contextEl.textContent = '⚔️ CONTESTED!';
+                }
+                
+                game.mathStartTime = performance.now();
+            }
+            
+            exit(game) {
+                document.getElementById('mathPanel').classList.remove('active');
+                document.getElementById('mathPanel').classList.remove('contested');
+            }
+            
+            update(game, dt) {
+                const elapsed = (performance.now() - game.mathStartTime) / 1000;
+                const remaining = Math.max(0, CONFIG.CONTEST_TIME_LIMIT - elapsed);
+                document.getElementById('timer').textContent = Math.ceil(remaining);
+                
+                if (remaining <= 0) {
+                    game.handleContestedAnswer(null); // Timeout - defender wins
                 }
             }
         }
@@ -931,18 +1127,84 @@
         }
 
         // ========================================================================
-        // MATH PROBLEM GENERATOR (CCSS-M Aligned)
+        // MATH PROBLEM GENERATOR (CCSS-M Aligned - Grades 3-5)
         // ========================================================================
         
         class MathGenerator {
             constructor() {
-                this.grade = 2;
+                this.grade = 3;
                 this.playerElo = 1000;
                 this.problemHistory = [];
+                
+                // Standards toggles - all enabled by default
+                this.enabledStandards = {
+                    // Grade 3
+                    '3.OA.A': true, '3.OA.B': true, '3.OA.C': true, '3.OA.D': true,
+                    '3.NBT.A': true, '3.NBT.B': true, '3.NBT.C': true,
+                    '3.NF.A': true,
+                    // Grade 4
+                    '4.OA.A': true, '4.OA.B': true, '4.OA.C': true,
+                    '4.NBT.A': true, '4.NBT.B': true,
+                    '4.NF.A': true, '4.NF.B': true, '4.NF.C': true,
+                    // Grade 5
+                    '5.OA.A': true, '5.OA.B': true,
+                    '5.NBT.A': true, '5.NBT.B': true,
+                    '5.NF.A': true, '5.NF.B': true,
+                    '5.G.A': true
+                };
+                
+                // Problem generators mapped to standards
+                this.standardGenerators = {
+                    // Grade 3 - Operations & Algebraic Thinking
+                    '3.OA.A': () => this.g3_multiplication(),
+                    '3.OA.B': () => this.g3_divisionUnknownFactor(),
+                    '3.OA.C': () => this.g3_multiplyDivide100(),
+                    '3.OA.D': () => this.g3_twoStepProblem(),
+                    // Grade 3 - Number & Base Ten
+                    '3.NBT.A': () => this.g3_rounding(),
+                    '3.NBT.B': () => this.g3_addSubtract1000(),
+                    '3.NBT.C': () => this.g3_multiplyMultiples10(),
+                    // Grade 3 - Fractions
+                    '3.NF.A': () => this.g3_unitFractions(),
+                    // Grade 4 - Operations
+                    '4.OA.A': () => this.g4_multiplicativeComparison(),
+                    '4.OA.B': () => this.g4_multiStepProblem(),
+                    '4.OA.C': () => this.g4_factorsMultiples(),
+                    // Grade 4 - Number & Base Ten
+                    '4.NBT.A': () => this.g4_placeValue(),
+                    '4.NBT.B': () => this.g4_multiDigitArithmetic(),
+                    // Grade 4 - Fractions
+                    '4.NF.A': () => this.g4_equivalentFractions(),
+                    '4.NF.B': () => this.g4_compareFractions(),
+                    '4.NF.C': () => this.g4_addSubtractFractions(),
+                    // Grade 5 - Operations
+                    '5.OA.A': () => this.g5_orderOfOperations(),
+                    '5.OA.B': () => this.g5_numericalPatterns(),
+                    // Grade 5 - Number & Base Ten
+                    '5.NBT.A': () => this.g5_powersOf10(),
+                    '5.NBT.B': () => this.g5_decimalOperations(),
+                    // Grade 5 - Fractions
+                    '5.NF.A': () => this.g5_addSubtractUnlikeFractions(),
+                    '5.NF.B': () => this.g5_multiplyDivideFractions(),
+                    // Grade 5 - Geometry
+                    '5.G.A': () => this.g5_coordinateGraphing()
+                };
             }
             
             setGrade(grade) {
-                this.grade = Utils.clamp(grade, 2, 5);
+                this.grade = Utils.clamp(grade, 3, 5);
+            }
+            
+            setStandard(standard, enabled) {
+                if (this.enabledStandards.hasOwnProperty(standard)) {
+                    this.enabledStandards[standard] = enabled;
+                }
+            }
+            
+            getEnabledStandardsForGrade(grade) {
+                const prefix = `${grade}.`;
+                return Object.keys(this.enabledStandards)
+                    .filter(s => s.startsWith(prefix) && this.enabledStandards[s]);
             }
             
             generate() {
@@ -952,15 +1214,23 @@
             }
             
             generateForGrade(grade) {
-                const difficulty = this.getDifficultyFromElo();
+                // Get enabled standards for this grade
+                let availableStandards = this.getEnabledStandardsForGrade(grade);
                 
-                switch(grade) {
-                    case 2: return this.grade2Problem(difficulty);
-                    case 3: return this.grade3Problem(difficulty);
-                    case 4: return this.grade4Problem(difficulty);
-                    case 5: return this.grade5Problem(difficulty);
-                    default: return this.grade2Problem(difficulty);
+                // If none enabled for this grade, try all grades
+                if (availableStandards.length === 0) {
+                    availableStandards = Object.keys(this.enabledStandards)
+                        .filter(s => this.enabledStandards[s]);
                 }
+                
+                // If still none, default to basic multiplication
+                if (availableStandards.length === 0) {
+                    return this.g3_multiplication();
+                }
+                
+                // Pick random enabled standard
+                const standard = availableStandards[Utils.randomInt(0, availableStandards.length - 1)];
+                return this.standardGenerators[standard]();
             }
             
             getDifficultyFromElo() {
@@ -977,103 +1247,338 @@
                 this.playerElo = Utils.clamp(this.playerElo, 600, 1400);
             }
             
-            // Grade 2: Addition/Subtraction within 100 (CCSS 2.OA, 2.NBT)
-            grade2Problem(difficulty) {
-                const maxNum = difficulty === 'easy' ? 20 : difficulty === 'medium' ? 50 : 100;
-                const ops = ['+', '-'];
-                const op = ops[Utils.randomInt(0, 1)];
+            // ============ GRADE 3 STANDARDS ============
+            
+            // 3.OA.A - Interpret products and quotients
+            g3_multiplication() {
+                const diff = this.getDifficultyFromElo();
+                const max = diff === 'easy' ? 5 : diff === 'medium' ? 10 : 12;
+                const a = Utils.randomInt(2, max);
+                const b = Utils.randomInt(2, max);
+                return this.createProblem(`${a} × ${b}`, a * b);
+            }
+            
+            // 3.OA.B - Division as unknown factor
+            g3_divisionUnknownFactor() {
+                const diff = this.getDifficultyFromElo();
+                const max = diff === 'easy' ? 5 : diff === 'medium' ? 10 : 12;
+                const b = Utils.randomInt(2, max);
+                const answer = Utils.randomInt(2, max);
+                const a = b * answer;
+                
+                if (Math.random() > 0.5) {
+                    return this.createProblem(`${a} ÷ ${b}`, answer);
+                } else {
+                    return this.createProblem(`? × ${b} = ${a}`, answer);
+                }
+            }
+            
+            // 3.OA.C - Multiply and divide within 100
+            g3_multiplyDivide100() {
+                const diff = this.getDifficultyFromElo();
+                if (Math.random() > 0.5) {
+                    const a = Utils.randomInt(2, 10);
+                    const b = Utils.randomInt(2, 10);
+                    return this.createProblem(`${a} × ${b}`, a * b);
+                } else {
+                    const b = Utils.randomInt(2, 10);
+                    const q = Utils.randomInt(2, 10);
+                    return this.createProblem(`${b * q} ÷ ${b}`, q);
+                }
+            }
+            
+            // 3.OA.D - Two-step word problems
+            g3_twoStepProblem() {
+                const diff = this.getDifficultyFromElo();
+                const a = Utils.randomInt(3, diff === 'easy' ? 6 : 10);
+                const b = Utils.randomInt(2, 5);
+                const c = Utils.randomInt(1, 10);
+                
+                const templates = [
+                    { text: `${a} groups of ${b}, plus ${c} more`, answer: a * b + c },
+                    { text: `${a} × ${b} + ${c}`, answer: a * b + c },
+                    { text: `${a} × ${b} - ${Math.min(c, a*b-1)}`, answer: a * b - Math.min(c, a*b-1) }
+                ];
+                
+                const template = templates[Utils.randomInt(0, templates.length - 1)];
+                return this.createProblem(template.text, template.answer);
+            }
+            
+            // 3.NBT.A - Round to nearest 10 or 100
+            g3_rounding() {
+                const diff = this.getDifficultyFromElo();
+                const roundTo = Math.random() > 0.5 ? 10 : 100;
+                const num = Utils.randomInt(roundTo === 10 ? 11 : 101, roundTo === 10 ? 99 : 999);
+                const answer = Math.round(num / roundTo) * roundTo;
+                return this.createProblem(`Round ${num} to the nearest ${roundTo}`, answer);
+            }
+            
+            // 3.NBT.B - Add/subtract within 1000
+            g3_addSubtract1000() {
+                const diff = this.getDifficultyFromElo();
+                const max = diff === 'easy' ? 500 : 1000;
+                const op = Math.random() > 0.5 ? '+' : '-';
                 
                 let a, b, answer;
                 if (op === '+') {
-                    a = Utils.randomInt(1, Math.floor(maxNum / 2));
-                    b = Utils.randomInt(1, Math.floor(maxNum / 2));
+                    a = Utils.randomInt(100, max / 2);
+                    b = Utils.randomInt(100, max / 2);
                     answer = a + b;
                 } else {
-                    a = Utils.randomInt(2, maxNum);
-                    b = Utils.randomInt(1, Math.max(1, a - 1));
+                    a = Utils.randomInt(200, max);
+                    b = Utils.randomInt(50, a - 50);
                     answer = a - b;
                 }
-                
                 return this.createProblem(`${a} ${op} ${b}`, answer);
             }
             
-            // Grade 3: Multiplication/Division (CCSS 3.OA)
-            grade3Problem(difficulty) {
-                const maxFactor = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 10 : 12;
-                const ops = ['×', '÷'];
-                const op = ops[Utils.randomInt(0, 1)];
+            // 3.NBT.C - Multiply by multiples of 10
+            g3_multiplyMultiples10() {
+                const a = Utils.randomInt(2, 9);
+                const b = Utils.randomInt(1, 9) * 10;
+                return this.createProblem(`${a} × ${b}`, a * b);
+            }
+            
+            // 3.NF.A - Unit fractions
+            g3_unitFractions() {
+                const denoms = [2, 3, 4, 6, 8];
+                const d = denoms[Utils.randomInt(0, denoms.length - 1)];
+                const parts = Utils.randomInt(1, d);
                 
-                let a, b, answer;
-                if (op === '×') {
-                    a = Utils.randomInt(2, maxFactor);
-                    b = Utils.randomInt(2, maxFactor);
-                    answer = a * b;
+                if (Math.random() > 0.5) {
+                    return this.createProblem(`How many ${1}/${d} parts make ${parts}/${d}?`, parts);
                 } else {
-                    b = Utils.randomInt(2, maxFactor);
-                    answer = Utils.randomInt(2, maxFactor);
-                    a = b * answer;
+                    return this.createProblem(`${parts} parts of 1/${d} equals ?/${d}`, parts);
                 }
-                
-                return this.createProblem(`${a} ${op} ${b}`, answer);
             }
             
-            // Grade 4: Multi-digit arithmetic, fractions (CCSS 4.NBT, 4.NF)
-            grade4Problem(difficulty) {
+            // ============ GRADE 4 STANDARDS ============
+            
+            // 4.OA.A - Multiplicative comparisons
+            g4_multiplicativeComparison() {
+                const a = Utils.randomInt(2, 8);
+                const mult = Utils.randomInt(2, 6);
+                const product = a * mult;
+                
+                const templates = [
+                    { text: `${product} is ${mult} times as many as ?`, answer: a },
+                    { text: `${a} × ? = ${product}`, answer: mult },
+                    { text: `? times ${a} equals ${product}`, answer: mult }
+                ];
+                
+                const t = templates[Utils.randomInt(0, templates.length - 1)];
+                return this.createProblem(t.text, t.answer);
+            }
+            
+            // 4.OA.B - Multi-step word problems
+            g4_multiStepProblem() {
+                const a = Utils.randomInt(10, 30);
+                const b = Utils.randomInt(2, 5);
+                const c = Utils.randomInt(5, 15);
+                
+                const answer = a * b + c;
+                return this.createProblem(`(${a} × ${b}) + ${c}`, answer);
+            }
+            
+            // 4.OA.C - Factors and multiples
+            g4_factorsMultiples() {
+                if (Math.random() > 0.5) {
+                    // Factor question
+                    const nums = [12, 18, 24, 36, 48];
+                    const n = nums[Utils.randomInt(0, nums.length - 1)];
+                    const factors = [];
+                    for (let i = 1; i <= n; i++) {
+                        if (n % i === 0) factors.push(i);
+                    }
+                    return this.createProblem(`How many factors does ${n} have?`, factors.length);
+                } else {
+                    // Multiple question
+                    const base = Utils.randomInt(3, 9);
+                    const mult = Utils.randomInt(5, 12);
+                    return this.createProblem(`What is the ${mult}th multiple of ${base}?`, base * mult);
+                }
+            }
+            
+            // 4.NBT.A - Place value understanding
+            g4_placeValue() {
+                const num = Utils.randomInt(1000, 9999);
+                const places = ['ones', 'tens', 'hundreds', 'thousands'];
+                const placeIdx = Utils.randomInt(0, 3);
+                const place = places[placeIdx];
+                const digit = Math.floor(num / Math.pow(10, placeIdx)) % 10;
+                
+                return this.createProblem(`What digit is in the ${place} place of ${num}?`, digit);
+            }
+            
+            // 4.NBT.B - Multi-digit arithmetic
+            g4_multiDigitArithmetic() {
+                const diff = this.getDifficultyFromElo();
                 const type = Utils.randomInt(0, 2);
                 
                 if (type === 0) {
-                    // Multi-digit multiplication
-                    const a = Utils.randomInt(10, difficulty === 'easy' ? 20 : 50);
-                    const b = Utils.randomInt(2, difficulty === 'easy' ? 5 : 9);
-                    return this.createProblem(`${a} × ${b}`, a * b);
+                    // Addition
+                    const a = Utils.randomInt(1000, 5000);
+                    const b = Utils.randomInt(1000, 4000);
+                    return this.createProblem(`${a} + ${b}`, a + b);
                 } else if (type === 1) {
-                    // Fraction addition (same denominator)
-                    const denom = [2, 4, 8, 10][Utils.randomInt(0, 3)];
-                    const a = Utils.randomInt(1, denom - 1);
-                    const b = Utils.randomInt(1, denom - a);
-                    const num = a + b;
-                    return this.createFractionProblem(a, denom, '+', b, denom, num, denom);
+                    // Subtraction
+                    const a = Utils.randomInt(3000, 9999);
+                    const b = Utils.randomInt(1000, a - 500);
+                    return this.createProblem(`${a} - ${b}`, a - b);
                 } else {
-                    // Division with remainder expressed as answer only
+                    // Multiplication
+                    const a = Utils.randomInt(10, diff === 'easy' ? 30 : 99);
                     const b = Utils.randomInt(2, 9);
-                    const answer = Utils.randomInt(5, 15);
-                    const a = b * answer;
-                    return this.createProblem(`${a} ÷ ${b}`, answer);
+                    return this.createProblem(`${a} × ${b}`, a * b);
                 }
             }
             
-            // Grade 5: Decimals, fractions, coordinates (CCSS 5.NBT, 5.NF, 5.G)
-            grade5Problem(difficulty) {
-                const type = Utils.randomInt(0, 2);
+            // 4.NF.A - Equivalent fractions
+            g4_equivalentFractions() {
+                const n = Utils.randomInt(1, 4);
+                const d = Utils.randomInt(n + 1, 6);
+                const mult = Utils.randomInt(2, 4);
                 
-                if (type === 0) {
-                    // Decimal operations
-                    const a = (Utils.randomInt(10, 99) / 10).toFixed(1);
-                    const b = (Utils.randomInt(10, 99) / 10).toFixed(1);
-                    const ops = ['+', '-'];
-                    const op = ops[Utils.randomInt(0, 1)];
-                    const answer = op === '+' 
-                        ? (parseFloat(a) + parseFloat(b)).toFixed(1)
-                        : (parseFloat(a) - parseFloat(b)).toFixed(1);
-                    return this.createProblem(`${a} ${op} ${b}`, parseFloat(answer));
-                } else if (type === 1) {
-                    // Fraction multiplication
-                    const n1 = Utils.randomInt(1, 5);
-                    const d1 = Utils.randomInt(2, 6);
-                    const n2 = Utils.randomInt(1, 5);
-                    const d2 = Utils.randomInt(2, 6);
-                    const numResult = n1 * n2;
-                    const denomResult = d1 * d2;
-                    return this.createFractionMultProblem(n1, d1, n2, d2, numResult, denomResult);
+                if (Math.random() > 0.5) {
+                    return this.createProblem(`${n}/${d} = ?/${d * mult}`, n * mult);
                 } else {
-                    // Coordinate/pattern
-                    const start = Utils.randomInt(2, 10);
-                    const step = Utils.randomInt(2, 5);
-                    const pos = Utils.randomInt(2, 4);
-                    const answer = start + step * pos;
-                    return this.createProblem(`Pattern: ${start}, ${start+step}, ${start+step*2}, ... What is term ${pos+1}?`, answer);
+                    return this.createProblem(`${n * mult}/${d * mult} = ?/${d}`, n);
                 }
             }
+            
+            // 4.NF.B - Compare fractions
+            g4_compareFractions() {
+                const d = Utils.randomInt(3, 8);
+                const n1 = Utils.randomInt(1, d - 1);
+                const n2 = Utils.randomInt(1, d - 1);
+                
+                while (n1 === n2) n2 = Utils.randomInt(1, d - 1);
+                
+                const larger = n1 > n2 ? n1 : n2;
+                return this.createProblem(`Which is larger: ${n1}/${d} or ${n2}/${d}? (answer numerator)`, larger);
+            }
+            
+            // 4.NF.C - Add/subtract fractions (same denominator)
+            g4_addSubtractFractions() {
+                const d = [2, 4, 6, 8, 10][Utils.randomInt(0, 4)];
+                const op = Math.random() > 0.5 ? '+' : '-';
+                
+                let n1, n2, answer;
+                if (op === '+') {
+                    n1 = Utils.randomInt(1, Math.floor(d / 2));
+                    n2 = Utils.randomInt(1, d - n1 - 1);
+                    answer = n1 + n2;
+                } else {
+                    n1 = Utils.randomInt(2, d - 1);
+                    n2 = Utils.randomInt(1, n1 - 1);
+                    answer = n1 - n2;
+                }
+                
+                return this.createFractionProblem(n1, d, op, n2, d, answer, d);
+            }
+            
+            // ============ GRADE 5 STANDARDS ============
+            
+            // 5.OA.A - Order of operations
+            g5_orderOfOperations() {
+                const a = Utils.randomInt(2, 8);
+                const b = Utils.randomInt(2, 6);
+                const c = Utils.randomInt(1, 10);
+                
+                const templates = [
+                    { text: `${a} + ${b} × ${c}`, answer: a + b * c },
+                    { text: `(${a} + ${b}) × ${c}`, answer: (a + b) * c },
+                    { text: `${a} × ${b} + ${c}`, answer: a * b + c },
+                    { text: `${a * b + c} - ${b} × ${c}`, answer: a * b + c - b * c }
+                ];
+                
+                const t = templates[Utils.randomInt(0, templates.length - 1)];
+                return this.createProblem(t.text, t.answer);
+            }
+            
+            // 5.OA.B - Numerical patterns
+            g5_numericalPatterns() {
+                const start = Utils.randomInt(2, 10);
+                const step = Utils.randomInt(2, 7);
+                const pos = Utils.randomInt(4, 7);
+                
+                const seq = `${start}, ${start + step}, ${start + step * 2}, ...`;
+                return this.createProblem(`Pattern: ${seq} What is term #${pos}?`, start + step * (pos - 1));
+            }
+            
+            // 5.NBT.A - Powers of 10
+            g5_powersOf10() {
+                const base = Utils.randomInt(1, 99) / 10;
+                const power = Utils.randomInt(1, 3);
+                const mult = Math.pow(10, power);
+                
+                if (Math.random() > 0.5) {
+                    return this.createProblem(`${base} × ${mult}`, base * mult);
+                } else {
+                    const num = Utils.randomInt(10, 9999);
+                    return this.createProblem(`${num} ÷ ${mult}`, num / mult);
+                }
+            }
+            
+            // 5.NBT.B - Decimal operations
+            g5_decimalOperations() {
+                const a = (Utils.randomInt(10, 99) / 10);
+                const b = (Utils.randomInt(10, 99) / 10);
+                const ops = ['+', '-', '×'];
+                const op = ops[Utils.randomInt(0, 2)];
+                
+                let answer;
+                if (op === '+') answer = a + b;
+                else if (op === '-') answer = Math.abs(a - b);
+                else answer = Math.round(a * b * 100) / 100;
+                
+                return this.createProblem(`${a.toFixed(1)} ${op} ${b.toFixed(1)}`, parseFloat(answer.toFixed(2)));
+            }
+            
+            // 5.NF.A - Add/subtract unlike fractions
+            g5_addSubtractUnlikeFractions() {
+                const pairs = [[2, 4], [3, 6], [2, 6], [4, 8], [3, 9]];
+                const [d1, d2] = pairs[Utils.randomInt(0, pairs.length - 1)];
+                const n1 = Utils.randomInt(1, d1 - 1);
+                const n2 = Utils.randomInt(1, d2 - 1);
+                
+                // Convert to common denominator
+                const lcd = d2;
+                const n1Converted = n1 * (lcd / d1);
+                const answer = n1Converted + n2;
+                
+                return this.createFractionProblem(n1, d1, '+', n2, d2, answer, lcd);
+            }
+            
+            // 5.NF.B - Multiply/divide fractions
+            g5_multiplyDivideFractions() {
+                const n1 = Utils.randomInt(1, 5);
+                const d1 = Utils.randomInt(2, 6);
+                const n2 = Utils.randomInt(1, 5);
+                const d2 = Utils.randomInt(2, 6);
+                
+                const numResult = n1 * n2;
+                const denomResult = d1 * d2;
+                
+                return this.createFractionMultProblem(n1, d1, n2, d2, numResult, denomResult);
+            }
+            
+            // 5.G.A - Coordinate graphing
+            g5_coordinateGraphing() {
+                const x = Utils.randomInt(0, 10);
+                const y = Utils.randomInt(0, 10);
+                
+                const templates = [
+                    { text: `Point at (${x}, ${y}). Distance from origin?`, answer: Math.round(Math.sqrt(x*x + y*y)) },
+                    { text: `Move 3 right from (${x}, ${y}). New x-coordinate?`, answer: x + 3 },
+                    { text: `Move 2 up from (${x}, ${y}). New y-coordinate?`, answer: y + 2 }
+                ];
+                
+                const t = templates[Utils.randomInt(0, templates.length - 1)];
+                return this.createProblem(t.text, t.answer);
+            }
+            
+            // ============ PROBLEM CREATION HELPERS ============
             
             createProblem(text, answer) {
                 const distractors = this.generateDistractors(answer);
@@ -1132,16 +1637,16 @@
                 
                 while (distractors.size < 3) {
                     let d;
-                    const variation = Utils.randomInt(1, 5);
+                    const variation = Utils.randomInt(1, Math.max(3, Math.ceil(Math.abs(answer) * 0.2)));
                     const sign = Math.random() > 0.5 ? 1 : -1;
                     
                     if (isDecimal) {
-                        d = parseFloat((answer + sign * variation * 0.1).toFixed(1));
+                        d = parseFloat((answer + sign * variation * 0.1).toFixed(2));
                     } else {
                         d = answer + sign * variation;
                     }
                     
-                    if (d !== answer && d > 0) {
+                    if (d !== answer && d >= 0) {
                         distractors.add(d);
                     }
                 }
@@ -1160,17 +1665,21 @@
                 this.targetX = 400;
                 this.targetY = 400;
                 this.shootCooldown = 0;
+                this.blockCooldown = 0;
                 this.difficulty = 0.5; // 0-1 scale
                 this.hasBall = false;
                 this.isShooting = false;
                 this.shotProgress = 0;
                 this.shotTrajectory = [];
                 this.shotMade = false;
+                this.shotBlocked = false;
                 this.ballPosition = { x: 0, y: 0 };
+                this.isChasing = false;
             }
             
             update(game, dt) {
                 this.shootCooldown = Math.max(0, this.shootCooldown - dt);
+                this.blockCooldown = Math.max(0, this.blockCooldown - dt);
                 
                 // Update shot animation
                 if (this.isShooting) {
@@ -1178,9 +1687,15 @@
                     return;
                 }
                 
-                // Behavior tree simulation
+                // Behavior tree priority:
+                // 1. If has ball -> shoot behavior
+                // 2. If ball is loose -> chase ball
+                // 3. Otherwise -> defend/try to block
+                
                 if (this.hasBall) {
                     this.executeShootBehavior(game, dt);
+                } else if (game.looseBall) {
+                    this.executeChaseBehavior(game, dt);
                 } else {
                     this.executeDefendBehavior(game, dt);
                 }
@@ -1210,19 +1725,55 @@
                     transform.x += (dx / dist) * speed;
                     transform.y += (dy / dist) * speed;
                 } else if (this.shootCooldown <= 0) {
-                    // Take shot
-                    this.startShot(game, transform);
+                    // Check if player is close enough to contest
+                    const playerT = game.player.getComponent(Transform);
+                    const distToPlayer = Utils.distance(transform.x, transform.y, playerT.x, playerT.y);
+                    
+                    if (distToPlayer < CONFIG.BLOCK_RANGE) {
+                        // Player is contesting! Trigger contested shot
+                        game.triggerContestedMath('playerBlock', transform);
+                    } else {
+                        // Take uncontested shot
+                        this.startShot(game, transform);
+                    }
+                }
+            }
+            
+            executeChaseBehavior(game, dt) {
+                const aiPlayer = game.aiPlayer;
+                const transform = aiPlayer.getComponent(Transform);
+                const ballT = game.ball.getComponent(Transform);
+                
+                this.isChasing = true;
+                
+                // Move toward ball
+                const dx = ballT.x - transform.x;
+                const dy = ballT.y - transform.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist > CONFIG.PICKUP_RANGE) {
+                    const speed = 3.5 * (1 + this.difficulty * 0.3);
+                    transform.x += (dx / dist) * speed;
+                    transform.y += (dy / dist) * speed;
+                    
+                    // Clamp to court
+                    transform.x = Utils.clamp(transform.x, 50, CONFIG.COURT_WIDTH - 50);
+                    transform.y = Utils.clamp(transform.y, CONFIG.COURT_HEIGHT * 0.4, CONFIG.COURT_HEIGHT - 60);
+                } else {
+                    // Close enough to pick up - trigger contested math
+                    game.triggerContestedMath('aiSteal', transform);
                 }
             }
             
             executeDefendBehavior(game, dt) {
-                // Position between player and hoop
                 const aiPlayer = game.aiPlayer;
                 const transform = aiPlayer.getComponent(Transform);
                 const playerT = game.player.getComponent(Transform);
                 
+                this.isChasing = false;
+                
                 // Dynamic defense position based on player location
-                const defenseX = Math.min(550, playerT.x + 100);
+                const defenseX = Math.min(550, playerT.x + 80);
                 const defenseY = Utils.clamp(playerT.y, CONFIG.COURT_HEIGHT * 0.45, CONFIG.COURT_HEIGHT - 80);
                 
                 const dx = defenseX - transform.x;
@@ -1230,8 +1781,17 @@
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
                 if (dist > 10) {
-                    transform.x += (dx / dist) * 2;
-                    transform.y += (dy / dist) * 2;
+                    const speed = 2.5;
+                    transform.x += (dx / dist) * speed;
+                    transform.y += (dy / dist) * speed;
+                }
+                
+                // Check if we can attempt a block on player's shot
+                const distToPlayer = Utils.distance(transform.x, transform.y, playerT.x, playerT.y);
+                if (distToPlayer < CONFIG.BLOCK_RANGE && game.ballInFlight && this.blockCooldown <= 0) {
+                    // We're close and ball just launched - attempt block
+                    this.blockCooldown = 2000;
+                    game.triggerContestedMath('aiBlock', transform);
                 }
             }
             
@@ -1245,6 +1805,7 @@
                 // AI shoots with accuracy based on difficulty
                 const accuracy = 0.5 + this.difficulty * 0.3;
                 this.shotMade = Math.random() < accuracy;
+                this.shotBlocked = false;
                 
                 // Calculate shot trajectory points
                 this.shotTrajectory = this.calculateAIShotTrajectory(startX, startY, targetX, targetY, this.shotMade);
@@ -1288,6 +1849,16 @@
             }
             
             updateShotAnimation(game, dt) {
+                if (this.shotBlocked) {
+                    // Shot was blocked
+                    this.isShooting = false;
+                    this.hasBall = false;
+                    game.audio.playRimHit();
+                    game.setLooseBall(this.ballPosition.x, this.ballPosition.y);
+                    this.ballPosition = { x: -100, y: -100 };
+                    return;
+                }
+                
                 this.shotProgress += dt / 800; // Shot takes ~800ms
                 
                 if (this.shotProgress >= 1) {
@@ -1313,15 +1884,22 @@
                     game.audio.playCrowd();
                 } else {
                     game.audio.playRimHit();
+                    // Missed shot becomes loose ball
+                    game.setLooseBall(CONFIG.HOOP_X - 50, CONFIG.HOOP_HEIGHT + 100);
                 }
                 
                 // Reset ball position off screen
                 this.ballPosition = { x: -100, y: -100 };
             }
             
+            blockShot() {
+                this.shotBlocked = true;
+            }
+            
             giveBall(game) {
                 this.hasBall = true;
                 this.shootCooldown = 500; // Brief delay before moving
+                this.isChasing = false;
                 
                 // Set initial ball position near AI
                 if (game && game.aiPlayer) {
@@ -1740,6 +2318,23 @@
                 ctx.setLineDash([]);
             }
             
+            // Draw pulsing glow effect for loose balls
+            drawLooseBallGlow(x, y) {
+                const ctx = this.ctx;
+                const time = Date.now() / 150;
+                const pulseSize = 30 + Math.sin(time) * 8;
+                
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, pulseSize);
+                gradient.addColorStop(0, 'rgba(255, 215, 0, 0.5)');
+                gradient.addColorStop(0.5, 'rgba(255, 215, 0, 0.25)');
+                gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
             // Draw player avatar
             drawPlayer(x, y, color, isPlayer = true, facingRight = true) {
                 const ctx = this.ctx;
@@ -2097,6 +2692,14 @@
                 this.rimCollisionCooldown = 0;
                 this.bounceCount = 0;
                 
+                // Loose ball state
+                this.looseBall = false;
+                this.looseBallTimer = 0;
+                
+                // Contest state
+                this.contestType = null; // 'aiBlock', 'aiSteal', 'playerBlock'
+                this.contestData = null;
+                
                 // Game loop
                 this.lastTime = 0;
                 this.accumulator = 0;
@@ -2123,11 +2726,26 @@
                     });
                 });
                 
-                // Answer buttons
+                // Standard toggles
+                document.querySelectorAll('.standard-toggle input').forEach(checkbox => {
+                    checkbox.addEventListener('change', (e) => {
+                        const std = e.target.dataset.std;
+                        this.mathGen.setStandard(std, e.target.checked);
+                    });
+                });
+                
+                // Answer buttons - handle both regular and contested math
                 document.querySelectorAll('.answer-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         const index = parseInt(e.target.dataset.index);
-                        this.handleMathAnswer(index);
+                        // Check if we're in contested state
+                        const gameplayState = this.stateMachine.children.get('Gameplay');
+                        if (gameplayState && gameplayState.currentChild && 
+                            gameplayState.currentChild.name === 'ContestSub') {
+                            this.handleContestedAnswer(index);
+                        } else {
+                            this.handleMathAnswer(index);
+                        }
                     });
                 });
                 
@@ -2183,6 +2801,18 @@
                 this.shotsMade = 0;
                 this.shotArcs = [];
                 this.ballInFlight = false;
+                this.rimCollisionCooldown = 0;
+                this.bounceCount = 0;
+                
+                // Reset loose ball state
+                this.looseBall = false;
+                this.looseBallTimer = 0;
+                document.getElementById('ballStatus').style.display = 'none';
+                
+                // Reset contest state
+                this.contestType = null;
+                this.contestData = null;
+                this.pausedBallState = null;
                 
                 // Reset positions
                 const playerT = this.player.getComponent(Transform);
@@ -2197,11 +2827,18 @@
                 ballT.x = 200;
                 ballT.y = 370;
                 
+                const ballV = this.ball.getComponent(Velocity);
+                ballV.vx = 0;
+                ballV.vy = 0;
+                
                 this.mathGen.playerElo = 1000;
                 this.ai.difficulty = 0.5;
                 this.ai.hasBall = false;
                 this.ai.isShooting = false;
                 this.ai.shootCooldown = 1000;
+                this.ai.blockCooldown = 0;
+                this.ai.isChasing = false;
+                this.ai.shotBlocked = false;
                 this.ai.ballPosition = { x: -100, y: -100 };
                 
                 this.updateUI();
@@ -2264,19 +2901,45 @@
                 playerT.x = Utils.clamp(playerT.x, 50, CONFIG.COURT_WIDTH - 100);
                 playerT.y = Utils.clamp(playerT.y, CONFIG.COURT_HEIGHT * 0.4, CONFIG.COURT_HEIGHT - 60);
                 
-                // Ball follows player
+                // Ball follows player (only if player has the ball)
                 const ballT = this.ball.getComponent(Transform);
-                if (!this.ballInFlight) {
+                const playerHasBall = !this.ballInFlight && !this.ai.hasBall && !this.looseBall;
+                
+                if (playerHasBall) {
                     ballT.x = playerT.x + 30;
                     ballT.y = playerT.y - 30;
                 }
                 
-                // Handle shooting
+                // Check if player can pick up loose ball
+                if (this.looseBall) {
+                    this.checkLooseBallPickup();
+                    this.looseBallTimer += dt;
+                    
+                    // Auto-give to player after 5 seconds if neither picked it up
+                    if (this.looseBallTimer > 5000) {
+                        this.looseBall = false;
+                        document.getElementById('ballStatus').style.display = 'none';
+                        this.resetBall();
+                    }
+                }
+                
+                // Handle shooting (only if player has ball)
                 const power = this.input.updateShootPower(dt);
                 this.renderer.drawPowerMeter(power);
                 
-                if (!this.input.shooting && power > 0 && !this.ballInFlight) {
-                    this.takeShot(power);
+                if (!this.input.shooting && power > 0 && playerHasBall) {
+                    // Check if AI is close enough to contest
+                    const aiT = this.aiPlayer.getComponent(Transform);
+                    const distToAI = Utils.distance(playerT.x, playerT.y, aiT.x, aiT.y);
+                    
+                    if (distToAI < CONFIG.BLOCK_RANGE && this.ai.blockCooldown <= 0) {
+                        // AI is contesting! Trigger contested shot
+                        this.ai.blockCooldown = 2000;
+                        this.takeShot(power); // Start the shot
+                        this.triggerContestedMath('aiBlock', { power });
+                    } else {
+                        this.takeShot(power);
+                    }
                 }
                 
                 // Update ball in flight
@@ -2495,6 +3158,139 @@
                 gameplayState.transition(this, 'FeedbackSub');
             }
             
+            // Trigger a contested math problem
+            triggerContestedMath(type, data) {
+                this.contestType = type;
+                this.contestData = data;
+                
+                // Pause current action based on type
+                if (type === 'aiBlock') {
+                    // AI is trying to block player's shot
+                    // Ball is in flight, pause it
+                    this.pausedBallState = {
+                        inFlight: this.ballInFlight,
+                        x: this.ball.getComponent(Transform).x,
+                        y: this.ball.getComponent(Transform).y,
+                        vx: this.ball.getComponent(Velocity).vx,
+                        vy: this.ball.getComponent(Velocity).vy
+                    };
+                    this.ballInFlight = false;
+                }
+                
+                const gameplayState = this.stateMachine.children.get('Gameplay');
+                gameplayState.transition(this, 'ContestSub');
+            }
+            
+            // Handle answer during contested math
+            handleContestedAnswer(selectedIndex) {
+                const correct = selectedIndex === this.currentProblem.correctIndex;
+                const gameplayState = this.stateMachine.children.get('Gameplay');
+                
+                switch(this.contestType) {
+                    case 'aiBlock':
+                        // AI tried to block player's shot
+                        if (correct) {
+                            // Player answered correctly - shot continues
+                            this.lastAnswerCorrect = true;
+                            this.audio.playCorrect();
+                            // Resume ball flight
+                            if (this.pausedBallState) {
+                                const ballT = this.ball.getComponent(Transform);
+                                const ballV = this.ball.getComponent(Velocity);
+                                ballT.x = this.pausedBallState.x;
+                                ballT.y = this.pausedBallState.y;
+                                ballV.vx = this.pausedBallState.vx;
+                                ballV.vy = this.pausedBallState.vy;
+                                this.ballInFlight = true;
+                            }
+                        } else {
+                            // Player failed - shot blocked
+                            this.lastAnswerCorrect = false;
+                            this.audio.playWrong();
+                            this.handleMissedBasket();
+                        }
+                        break;
+                        
+                    case 'aiSteal':
+                        // AI is trying to steal/pick up loose ball
+                        if (correct) {
+                            // Player keeps the ball
+                            this.lastAnswerCorrect = true;
+                            this.audio.playCorrect();
+                            this.looseBall = false;
+                            document.getElementById('ballStatus').style.display = 'none';
+                            // Ball back to player
+                            this.resetBall();
+                        } else {
+                            // AI steals the ball
+                            this.lastAnswerCorrect = false;
+                            this.audio.playWrong();
+                            this.looseBall = false;
+                            document.getElementById('ballStatus').style.display = 'none';
+                            this.ai.giveBall(this);
+                        }
+                        break;
+                        
+                    case 'playerBlock':
+                        // Player is trying to block AI's shot
+                        if (correct) {
+                            // Player blocks successfully!
+                            this.lastAnswerCorrect = true;
+                            this.audio.playCorrect();
+                            this.ai.blockShot();
+                            // Player gets the ball
+                            this.resetBall();
+                        } else {
+                            // Block failed - AI shot continues
+                            this.lastAnswerCorrect = false;
+                            this.audio.playWrong();
+                            this.ai.startShot(this, this.contestData);
+                        }
+                        break;
+                }
+                
+                this.contestType = null;
+                this.contestData = null;
+                this.pausedBallState = null;
+                
+                gameplayState.transition(this, 'FeedbackSub');
+            }
+            
+            // Set ball as loose (can be picked up by either player)
+            setLooseBall(x, y) {
+                this.looseBall = true;
+                this.looseBallTimer = 0;
+                
+                const ballT = this.ball.getComponent(Transform);
+                const ballV = this.ball.getComponent(Velocity);
+                
+                ballT.x = x;
+                ballT.y = Math.min(y, CONFIG.COURT_HEIGHT - 60);
+                ballV.vx = 0;
+                ballV.vy = 0;
+                
+                this.ballInFlight = false;
+                document.getElementById('ballStatus').style.display = 'block';
+            }
+            
+            // Check if player picks up loose ball
+            checkLooseBallPickup() {
+                if (!this.looseBall) return;
+                
+                const playerT = this.player.getComponent(Transform);
+                const ballT = this.ball.getComponent(Transform);
+                
+                const dist = Utils.distance(playerT.x, playerT.y, ballT.x, ballT.y);
+                
+                if (dist < CONFIG.PICKUP_RANGE) {
+                    // Player picks up the ball
+                    this.looseBall = false;
+                    document.getElementById('ballStatus').style.display = 'none';
+                    this.resetBall();
+                    this.audio.playBounce(0.8);
+                }
+            }
+            
             createShotArc(startX, startY, made) {
                 const points = this.physics.calculateTrajectory(
                     startX, startY,
@@ -2557,12 +3353,17 @@
                         data: { t: aiT, facing: aiFacing, hasBall: this.ai.hasBall } 
                     });
                     
-                    // Player's ball (only if player has it or it's in flight)
-                    if (!this.ai.hasBall || this.ballInFlight) {
+                    // Player's ball (only if player has it, it's in flight, or it's loose)
+                    const playerHasBall = !this.ai.hasBall && !this.ai.isShooting;
+                    if (playerHasBall || this.ballInFlight || this.looseBall) {
                         entities.push({ 
                             type: 'ball', 
                             y: ballT.y, 
-                            data: { t: ballT, inFlight: this.ballInFlight } 
+                            data: { 
+                                t: ballT, 
+                                inFlight: this.ballInFlight,
+                                isLoose: this.looseBall
+                            } 
                         });
                     }
                     
@@ -2611,6 +3412,15 @@
                             const rotation = entity.data.inFlight 
                                 ? performance.now() / 100 
                                 : 0;
+                            
+                            // Add glow effect for loose balls
+                            if (entity.data.isLoose) {
+                                this.renderer.drawLooseBallGlow(
+                                    entity.data.t.x,
+                                    entity.data.t.y
+                                );
+                            }
+                            
                             this.renderer.drawBall(
                                 entity.data.t.x, 
                                 entity.data.t.y, 
