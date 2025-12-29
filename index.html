@@ -322,8 +322,8 @@
             position: absolute;
             left: -6px;
             right: -6px;
-            height: 8px;
-            background: rgba(0, 255, 0, 0.6);
+            height: 5px;
+            background: rgba(0, 255, 0, 0.8);
             border: 2px solid #0f0;
             border-radius: 2px;
             box-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
@@ -2847,7 +2847,7 @@
                     // Position sweet spot zone (centered on optimal power)
                     const meterHeight = 150; // matches CSS
                     const spotPosition = optimalPower * meterHeight;
-                    const spotHeight = 8; // matches CSS
+                    const spotHeight = 5; // matches CSS - very small target!
                     sweetSpot.style.bottom = `${spotPosition - spotHeight / 2}px`;
                     sweetSpot.style.display = 'block';
                 } else {
@@ -3401,13 +3401,13 @@
                 const optimalPower = 0.45 + normalizedDist * 0.45;
                 
                 // Shot accuracy check - timing matters!
-                // Within 5% = perfect (always goes in)
-                // Within 15% = good (35% chance)
-                // Beyond 15% = poor (NEVER goes in)
+                // Within 3% = perfect (always goes in) - VERY tight!
+                // Within 8% = good (25% chance)
+                // Beyond 8% = poor (NEVER goes in)
                 const powerError = Math.abs(power - optimalPower);
                 
-                this.perfectShot = powerError <= 0.05;
-                this.goodShot = powerError <= 0.15;
+                this.perfectShot = powerError <= 0.03;
+                this.goodShot = powerError <= 0.08;
                 this.shotPower = power;
                 this.powerError = powerError; // Store for debugging
                 this.optimalPower = optimalPower; // Store for debugging
@@ -3418,12 +3418,22 @@
                 if (this.perfectShot) {
                     willScore = true; // Perfect timing = guaranteed make
                 } else if (this.goodShot) {
-                    willScore = Math.random() < 0.35; // 35% chance for good timing
+                    willScore = Math.random() < 0.25; // Only 25% chance for good timing
                 } else {
                     willScore = false; // Bad timing = NEVER goes in
                 }
                 
-                // Debug logging
+                // Debug logging - VERY VERBOSE
+                const timingQuality = this.perfectShot ? 'PERFECT' : (this.goodShot ? 'GOOD' : 'POOR');
+                console.log('=== SHOT TAKEN ===');
+                console.log('Power released at:', power.toFixed(3));
+                console.log('Optimal power was:', optimalPower.toFixed(3));
+                console.log('Error amount:', powerError.toFixed(3));
+                console.log('Timing quality:', timingQuality);
+                console.log('Will score:', willScore);
+                console.log('==================');
+                
+                // Also log for debugging
                 console.log('Shot taken:', {
                     power: power.toFixed(3),
                     optimalPower: optimalPower.toFixed(3),
@@ -3481,17 +3491,25 @@
                 
                 // Check if shot animation is complete
                 if (t >= 1) {
-                    console.log('Shot resolving:', {
-                        shotWillScore: this.shotWillScore,
-                        perfectShot: this.perfectShot,
-                        goodShot: this.goodShot
-                    });
+                    console.log('=== SHOT RESOLVING ===');
+                    console.log('shotWillScore:', this.shotWillScore);
+                    console.log('perfectShot:', this.perfectShot);
+                    console.log('goodShot:', this.goodShot);
+                    console.log('======================');
+                    
+                    // STRICT ENFORCEMENT: If timing was poor, FORCE a miss
+                    if (!this.perfectShot && !this.goodShot) {
+                        console.log('ENFORCING MISS: Poor timing detected at resolution');
+                        this.shotWillScore = false;
+                    }
                     
                     if (this.shotWillScore) {
                         // Ball goes in!
+                        console.log('>>> BASKET MADE <<<');
                         this.handleMadeBasket();
                     } else {
                         // Ball misses - bounce off rim
+                        console.log('>>> SHOT MISSED <<<');
                         this.audio.playRimHit();
                         this.handleMissedBasket();
                     }
