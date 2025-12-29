@@ -931,6 +931,17 @@
             
             update(game, dt) {
                 this.feedbackTimer += dt;
+                
+                // Continue ball flight during feedback if ball is in air
+                if (game.ballInFlight) {
+                    game.updateBallFlight(dt);
+                }
+                
+                // Also update AI shot if AI is shooting
+                if (game.ai.isShooting) {
+                    game.ai.updateShotAnimation(game, dt);
+                }
+                
                 if (this.feedbackTimer > 1000) {
                     game.stateMachine.children.get('Gameplay').transition(game, 'PlaySub');
                 }
@@ -3480,7 +3491,9 @@
                             // Player answered correctly - shot continues as planned
                             this.lastAnswerCorrect = true;
                             this.audio.playCorrect();
-                            // shotWillScore is already set, shot continues
+                            // Make sure ball continues flying - reset shotProgress to continue animation
+                            this.ballInFlight = true;
+                            // shotWillScore is already set from takeShot
                         } else {
                             // Player failed - shot blocked, AI gets the ball
                             this.lastAnswerCorrect = false;
