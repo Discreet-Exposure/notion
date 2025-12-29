@@ -1,122 +1,2291 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MathHoops - Basketball Math Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #gameCanvas {
+            background: linear-gradient(180deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        #uiOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .ui-element {
+            pointer-events: auto;
+        }
+        
+        #scoreBoard {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            color: #fff;
+            font-size: 18px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .score-panel {
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #e94560;
+        }
+        
+        #mathPanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15, 15, 35, 0.95);
+            border: 3px solid #e94560;
+            border-radius: 20px;
+            padding: 30px 50px;
+            text-align: center;
+            display: none;
+            box-shadow: 0 0 30px rgba(233, 69, 96, 0.5);
+        }
+        
+        #mathPanel.active {
+            display: block;
+            pointer-events: auto;
+        }
+        
+        #mathProblem {
+            font-size: 36px;
+            color: #fff;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        #answerOptions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .answer-btn {
+            padding: 15px 30px;
+            font-size: 24px;
+            background: linear-gradient(145deg, #e94560, #c23152);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+        
+        .answer-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.6);
+        }
+        
+        .answer-btn:active {
+            transform: scale(0.95);
+        }
+        
+        #timer {
+            font-size: 48px;
+            color: #e94560;
+            margin-bottom: 15px;
+        }
+        
+        #feedbackPanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 20px currentColor;
+            display: none;
+            animation: feedbackPop 0.5s ease-out;
+        }
+        
+        @keyframes feedbackPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        #menuPanel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #menuPanel.hidden {
+            display: none;
+        }
+        
+        #gameTitle {
+            font-size: 64px;
+            color: #e94560;
+            text-shadow: 0 0 30px rgba(233, 69, 96, 0.7);
+            margin-bottom: 20px;
+        }
+        
+        #gameSubtitle {
+            font-size: 24px;
+            color: #a0a0a0;
+            margin-bottom: 50px;
+        }
+        
+        .menu-btn {
+            padding: 20px 60px;
+            font-size: 28px;
+            background: linear-gradient(145deg, #e94560, #c23152);
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .menu-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(233, 69, 96, 0.7);
+        }
+        
+        #gradeSelect {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+        
+        .grade-btn {
+            padding: 15px 25px;
+            font-size: 18px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 2px solid #e94560;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .grade-btn.selected {
+            background: #e94560;
+        }
+        
+        .grade-btn:hover {
+            background: rgba(233, 69, 96, 0.5);
+        }
+        
+        #virtualJoystick {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 3px solid rgba(255,255,255,0.3);
+            display: none;
+        }
+        
+        #joystickKnob {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(233, 69, 96, 0.8);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #shootButton {
+            position: absolute;
+            bottom: 50px;
+            right: 50px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #e94560, #c23152);
+            border: 4px solid #fff;
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+        }
+        
+        #powerMeter {
+            position: absolute;
+            bottom: 200px;
+            right: 60px;
+            width: 30px;
+            height: 150px;
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #fff;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        #powerFill {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 0%;
+            background: linear-gradient(180deg, #e94560, #ff6b6b);
+            border-radius: 3px;
+            transition: height 0.05s;
+        }
+        
+        #streakIndicator {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: #ff6b6b;
+            text-shadow: 0 0 10px #ff6b6b;
+            display: none;
+        }
+        
+        #summaryPanel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 35, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        #summaryPanel.active {
+            display: flex;
+        }
+        
+        .summary-title {
+            font-size: 48px;
+            color: #e94560;
+            margin-bottom: 30px;
+        }
+        
+        .summary-stats {
+            font-size: 24px;
+            color: #fff;
+            margin: 10px 0;
+        }
+        
+        .on-fire {
+            animation: fireGlow 0.5s infinite alternate;
+        }
+        
+        @keyframes fireGlow {
+            from { text-shadow: 0 0 10px #ff6b6b, 0 0 20px #ff6b6b; }
+            to { text-shadow: 0 0 20px #ff9500, 0 0 40px #ff9500, 0 0 60px #ff6b6b; }
+        }
 
-	<!-- Font Awesome -->
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
-
-	<!-- Google Font -->
-
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Lato:wght@700&display=swap" rel="stylesheet">
-
-	<!-------->
-
-	<style>
-		* {
-			margin: 0;
-			padding: 0;
-			-webkit-box-sizing: border-box;
-			box-sizing: border-box;
-		}
-
-
-		.navMenu {
-			font-family: 'Advent Pro', sans-serif;
-			padding: 8px;
-			text-align: center;
-			margin: 7px auto;
-			width: fit-content;
-		}
-
-		.navMenu a {
-			color: #272727;
-			text-decoration: none;
-			text-transform: uppercase;
-			display: inline-block;
-			padding: 6px;
-		}
-
-		.background {
-			background-color: #ece5f0;
-		}
-
-		.border {
-			border: 1px solid #cccccc;
-
-		}
-
-		.navMenu a:hover {
-
-			color: #d09c0b;
-		}
-	</style>
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
 </head>
-
 <body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiOverlay">
+            <div id="scoreBoard">
+                <div class="score-panel">
+                    <span id="playerLabel">YOU</span>: <span id="playerScore">0</span>
+                </div>
+                <div class="score-panel">
+                    <span>TIME: </span><span id="gameTimer">60</span>
+                </div>
+                <div class="score-panel">
+                    <span id="aiLabel">CPU</span>: <span id="aiScore">0</span>
+                </div>
+            </div>
+            
+            <div id="streakIndicator">🔥 ON FIRE! 🔥</div>
+            
+            <div id="mathPanel">
+                <div id="timer">10</div>
+                <div id="mathProblem">12 + 8 = ?</div>
+                <div id="answerOptions">
+                    <button class="answer-btn ui-element" data-index="0">18</button>
+                    <button class="answer-btn ui-element" data-index="1">20</button>
+                    <button class="answer-btn ui-element" data-index="2">22</button>
+                    <button class="answer-btn ui-element" data-index="3">19</button>
+                </div>
+            </div>
+            
+            <div id="feedbackPanel"></div>
+            
+            <div id="virtualJoystick" class="ui-element">
+                <div id="joystickKnob"></div>
+            </div>
+            
+            <button id="shootButton" class="ui-element">SHOOT</button>
+            
+            <div id="powerMeter">
+                <div id="powerFill"></div>
+            </div>
+        </div>
+        
+        <div id="menuPanel">
+            <div id="gameTitle">🏀 MATH HOOPS</div>
+            <div id="gameSubtitle">Basketball meets Mathematics!</div>
+            <button class="menu-btn ui-element" id="startBtn">START GAME</button>
+            <div id="gradeSelect">
+                <button class="grade-btn ui-element selected" data-grade="2">Grade 2</button>
+                <button class="grade-btn ui-element" data-grade="3">Grade 3</button>
+                <button class="grade-btn ui-element" data-grade="4">Grade 4</button>
+                <button class="grade-btn ui-element" data-grade="5">Grade 5</button>
+            </div>
+            <div id="instructions">
+                Use WASD/Arrow keys to move, SPACE to shoot<br>
+                Touch controls enabled on mobile
+            </div>
+        </div>
+        
+        <div id="summaryPanel">
+            <div class="summary-title">GAME OVER!</div>
+            <div class="summary-stats" id="finalScore">Final Score: 0 - 0</div>
+            <div class="summary-stats" id="mathAccuracy">Math Accuracy: 0%</div>
+            <div class="summary-stats" id="shotAccuracy">Shot Accuracy: 0%</div>
+            <div class="summary-stats" id="streakBest">Best Streak: 0</div>
+            <button class="menu-btn ui-element" id="playAgainBtn">PLAY AGAIN</button>
+            <button class="menu-btn ui-element" id="menuBtn">MAIN MENU</button>
+        </div>
+    </div>
 
-	<nav class="navMenu  border">
-		<a id="home" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-house"></i> Home</a>
-		<a id="inbox" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-inbox"></i> Inbox</a>
-		<a id="week" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-calendar-week"></i> Planner</a>
-		<a id="projects" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-briefcase"></i> Projects</a>
-		<a id="tasks" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-list-check"></i> Tasks</a>
-		<a id="business" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-money-bill-wave"></i> Business</a>
-		<a id="knowledge" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-lightbulb"></i> Knowledge</a>
-		<a id="topics" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-layer-group"></i> Topics</a>
-		<a id="notes" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-book"></i> Notes</a>
-		<a id="media" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-bookmark"></i> Media</a>
-		<a id="resourses" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-wrench"></i> Resourses</a>
-		<a id="lifewiki" onclick="navigate(this.id)" href="#"> <i class="fa-solid fa-heart"></i> Lifewiki</a>
+    <script>
+    // ============================================================================
+    // MATHHOOPS - Complete Game Implementation
+    // Vanilla HTML5 Canvas + Web Audio API
+    // No external dependencies
+    // ============================================================================
 
+    (function() {
+        'use strict';
 
+        // ========================================================================
+        // CONSTANTS & CONFIGURATION
+        // ========================================================================
+        
+        const CONFIG = {
+            FIXED_TIMESTEP: 1000 / 60, // 60 FPS physics
+            MAX_FRAME_SKIP: 5,
+            COURT_WIDTH: 800,
+            COURT_HEIGHT: 600,
+            GRAVITY: 0.4,
+            BALL_RADIUS: 15,
+            HOOP_HEIGHT: 180,
+            HOOP_X: 700,
+            RIM_RADIUS: 25,
+            NET_SEGMENTS: 8,
+            GAME_DURATION: 60,
+            MATH_TIME_LIMIT: 10,
+            STREAK_FOR_FIRE: 3,
+            TURBO_MULTIPLIER: 1.5
+        };
 
-	</nav>
+        // ========================================================================
+        // UTILITY FUNCTIONS
+        // ========================================================================
+        
+        const Utils = {
+            lerp: (a, b, t) => a + (b - a) * t,
+            clamp: (v, min, max) => Math.max(min, Math.min(max, v)),
+            distance: (x1, y1, x2, y2) => Math.sqrt((x2-x1)**2 + (y2-y1)**2),
+            randomRange: (min, max) => Math.random() * (max - min) + min,
+            randomInt: (min, max) => Math.floor(Math.random() * (max - min + 1)) + min,
+            shuffle: (arr) => {
+                const a = [...arr];
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            },
+            easeOutQuad: (t) => t * (2 - t),
+            easeInOutQuad: (t) => t < 0.5 ? 2*t*t : -1+(4-2*t)*t
+        };
 
+        // ========================================================================
+        // OBJECT POOL
+        // ========================================================================
+        
+        class ObjectPool {
+            constructor(factory, initialSize = 10) {
+                this.factory = factory;
+                this.pool = [];
+                for (let i = 0; i < initialSize; i++) {
+                    this.pool.push(factory());
+                }
+            }
+            
+            acquire() {
+                return this.pool.length > 0 ? this.pool.pop() : this.factory();
+            }
+            
+            release(obj) {
+                if (obj.reset) obj.reset();
+                this.pool.push(obj);
+            }
+        }
 
-	<script>
+        // ========================================================================
+        // COMPONENT SYSTEM
+        // ========================================================================
+        
+        class Entity {
+            constructor() {
+                this.id = Entity.nextId++;
+                this.components = new Map();
+                this.active = true;
+            }
+            
+            addComponent(component) {
+                this.components.set(component.constructor.name, component);
+                component.entity = this;
+                return this;
+            }
+            
+            getComponent(type) {
+                return this.components.get(type.name || type);
+            }
+            
+            hasComponent(type) {
+                return this.components.has(type.name || type);
+            }
+        }
+        Entity.nextId = 0;
 
-		let direction = "horizontal";
-		if (direction === "vertical") {
-			document.head.insertAdjacentHTML("beforeend", `<style>.navMenu a {display: block; text-align:left; margin:7px} i{width:15px; margin-right:5px} .navMenu{margin:3px}</style>`)
-		}
+        // Transform Component
+        class Transform {
+            constructor(x = 0, y = 0, z = 0, rotation = 0, scaleX = 1, scaleY = 1) {
+                this.x = x;
+                this.y = y;
+                this.z = z; // For 2.5D depth sorting
+                this.rotation = rotation;
+                this.scaleX = scaleX;
+                this.scaleY = scaleY;
+                this.prevX = x;
+                this.prevY = y;
+            }
+            
+            reset() {
+                this.x = this.y = this.z = this.rotation = 0;
+                this.scaleX = this.scaleY = 1;
+            }
+        }
 
+        // Velocity Component
+        class Velocity {
+            constructor(vx = 0, vy = 0, vz = 0) {
+                this.vx = vx;
+                this.vy = vy;
+                this.vz = vz;
+            }
+            
+            reset() {
+                this.vx = this.vy = this.vz = 0;
+            }
+        }
 
-		function navigate(id) {
+        // Collider Component
+        class Collider {
+            constructor(type = 'circle', width = 0, height = 0, radius = 0) {
+                this.type = type;
+                this.width = width;
+                this.height = height;
+                this.radius = radius;
+                this.isStatic = false;
+            }
+        }
 
-			if (id == 'home')
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "inbox")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "week")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "month")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "projects")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "business")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "tasks")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "knowledge")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "topics")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "notes")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "media")
-				window.open("https://example.com", '_blank').focus();
-			else if (id == "resourses")
-				window.open("https://example.com3", '_blank').focus();
-			else if (id == "lifewiki")
-				window.open("https://example.com", '_blank').focus();
+        // Renderable Component
+        class Renderable {
+            constructor(renderFn, layer = 0) {
+                this.render = renderFn;
+                this.layer = layer;
+                this.visible = true;
+            }
+        }
 
-		}
-	</script>
+        // ========================================================================
+        // HIERARCHICAL FINITE STATE MACHINE
+        // ========================================================================
+        
+        class State {
+            constructor(name) {
+                this.name = name;
+                this.parent = null;
+                this.children = new Map();
+                this.currentChild = null;
+            }
+            
+            enter(game) {}
+            exit(game) {}
+            update(game, dt) {}
+            
+            addChild(state) {
+                state.parent = this;
+                this.children.set(state.name, state);
+                return this;
+            }
+            
+            transition(game, stateName) {
+                if (this.currentChild) {
+                    this.currentChild.exit(game);
+                }
+                this.currentChild = this.children.get(stateName);
+                if (this.currentChild) {
+                    this.currentChild.enter(game);
+                }
+            }
+        }
 
+        // Boot State
+        class BootState extends State {
+            constructor() { super('Boot'); }
+            
+            enter(game) {
+                console.log('MathHoops Initialized');
+                game.stateMachine.transition(game, 'Menu');
+            }
+        }
 
+        // Menu State
+        class MenuState extends State {
+            constructor() { super('Menu'); }
+            
+            enter(game) {
+                document.getElementById('menuPanel').classList.remove('hidden');
+                document.getElementById('summaryPanel').classList.remove('active');
+            }
+            
+            exit(game) {
+                document.getElementById('menuPanel').classList.add('hidden');
+            }
+        }
+
+        // Gameplay State
+        class GameplayState extends State {
+            constructor() {
+                super('Gameplay');
+                this.addChild(new PlaySubState());
+                this.addChild(new MathSubState());
+                this.addChild(new FeedbackSubState());
+            }
+            
+            enter(game) {
+                game.resetGame();
+                this.transition(game, 'PlaySub');
+                
+                // Show touch controls on mobile
+                if ('ontouchstart' in window) {
+                    document.getElementById('virtualJoystick').style.display = 'block';
+                    document.getElementById('shootButton').style.display = 'block';
+                }
+            }
+            
+            exit(game) {
+                document.getElementById('virtualJoystick').style.display = 'none';
+                document.getElementById('shootButton').style.display = 'none';
+                document.getElementById('powerMeter').style.display = 'none';
+            }
+            
+            update(game, dt) {
+                if (this.currentChild) {
+                    this.currentChild.update(game, dt);
+                }
+            }
+        }
+
+        // Play Sub-State (active basketball gameplay)
+        class PlaySubState extends State {
+            constructor() { super('PlaySub'); }
+            
+            enter(game) {
+                document.getElementById('mathPanel').classList.remove('active');
+            }
+            
+            update(game, dt) {
+                game.updateGameplay(dt);
+            }
+        }
+
+        // Math Sub-State (answering math problems)
+        class MathSubState extends State {
+            constructor() { super('MathSub'); }
+            
+            enter(game) {
+                game.generateMathProblem();
+                document.getElementById('mathPanel').classList.add('active');
+                game.mathStartTime = performance.now();
+            }
+            
+            exit(game) {
+                document.getElementById('mathPanel').classList.remove('active');
+            }
+            
+            update(game, dt) {
+                const elapsed = (performance.now() - game.mathStartTime) / 1000;
+                const remaining = Math.max(0, CONFIG.MATH_TIME_LIMIT - elapsed);
+                document.getElementById('timer').textContent = Math.ceil(remaining);
+                
+                if (remaining <= 0) {
+                    game.handleMathAnswer(null); // Timeout
+                }
+            }
+        }
+
+        // Feedback Sub-State (showing result of math answer)
+        class FeedbackSubState extends State {
+            constructor() { super('FeedbackSub'); }
+            
+            enter(game) {
+                this.feedbackTimer = 0;
+                const panel = document.getElementById('feedbackPanel');
+                panel.style.display = 'block';
+                panel.textContent = game.lastAnswerCorrect ? '✓ CORRECT!' : '✗ WRONG!';
+                panel.style.color = game.lastAnswerCorrect ? '#4caf50' : '#f44336';
+            }
+            
+            exit(game) {
+                document.getElementById('feedbackPanel').style.display = 'none';
+            }
+            
+            update(game, dt) {
+                this.feedbackTimer += dt;
+                if (this.feedbackTimer > 1000) {
+                    game.stateMachine.children.get('Gameplay').transition(game, 'PlaySub');
+                }
+            }
+        }
+
+        // Summary State
+        class SummaryState extends State {
+            constructor() { super('Summary'); }
+            
+            enter(game) {
+                document.getElementById('summaryPanel').classList.add('active');
+                document.getElementById('finalScore').textContent = 
+                    `Final Score: ${game.playerScore} - ${game.aiScore}`;
+                
+                const mathAcc = game.mathAttempts > 0 
+                    ? Math.round((game.mathCorrect / game.mathAttempts) * 100) : 0;
+                const shotAcc = game.shotAttempts > 0 
+                    ? Math.round((game.shotsMade / game.shotAttempts) * 100) : 0;
+                    
+                document.getElementById('mathAccuracy').textContent = `Math Accuracy: ${mathAcc}%`;
+                document.getElementById('shotAccuracy').textContent = `Shot Accuracy: ${shotAcc}%`;
+                document.getElementById('streakBest').textContent = `Best Streak: ${game.bestStreak}`;
+            }
+            
+            exit(game) {
+                document.getElementById('summaryPanel').classList.remove('active');
+            }
+        }
+
+        // ========================================================================
+        // WEB AUDIO SYNTHESIZER
+        // ========================================================================
+        
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.initialized = false;
+            }
+            
+            init() {
+                if (this.initialized) return;
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    this.initialized = true;
+                } catch(e) {
+                    console.warn('Web Audio not supported');
+                }
+            }
+            
+            // Swish sound for made baskets
+            playSwish() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                // White noise burst filtered
+                const bufferSize = this.ctx.sampleRate * 0.3;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.1));
+                }
+                
+                const source = this.ctx.createBufferSource();
+                source.buffer = buffer;
+                
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 3000;
+                filter.Q.value = 1;
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                
+                source.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                source.start(now);
+            }
+            
+            // Bounce/dribble sound
+            playBounce(intensity = 1) {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                const osc = this.ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150 * intensity, now);
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.1);
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3 * intensity, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            }
+            
+            // Rim hit sound
+            playRimHit() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                const osc = this.ctx.createOscillator();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.15);
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+            
+            // Correct answer celebration
+            playCorrect() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                [523.25, 659.25, 783.99].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    
+                    const gain = this.ctx.createGain();
+                    gain.gain.setValueAtTime(0, now + i * 0.1);
+                    gain.gain.linearRampToValueAtTime(0.2, now + i * 0.1 + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.1);
+                    osc.stop(now + i * 0.1 + 0.3);
+                });
+            }
+            
+            // Wrong answer buzz
+            playWrong() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                const osc = this.ctx.createOscillator();
+                osc.type = 'sawtooth';
+                osc.frequency.value = 150;
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+            
+            // Crowd cheer
+            playCrowd() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                const bufferSize = this.ctx.sampleRate * 0.8;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < bufferSize; i++) {
+                    const t = i / bufferSize;
+                    data[i] = (Math.random() * 2 - 1) * Math.sin(Math.PI * t) * 0.5;
+                }
+                
+                const source = this.ctx.createBufferSource();
+                source.buffer = buffer;
+                
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 2000;
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.3, now);
+                
+                source.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                source.start(now);
+            }
+            
+            // Whistle for game start/end
+            playWhistle() {
+                if (!this.ctx) return;
+                const now = this.ctx.currentTime;
+                
+                const osc = this.ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(2800, now);
+                osc.frequency.setValueAtTime(2400, now + 0.15);
+                osc.frequency.setValueAtTime(2800, now + 0.3);
+                
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.setValueAtTime(0.2, now + 0.4);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
+
+        // ========================================================================
+        // MATH PROBLEM GENERATOR (CCSS-M Aligned)
+        // ========================================================================
+        
+        class MathGenerator {
+            constructor() {
+                this.grade = 2;
+                this.playerElo = 1000;
+                this.problemHistory = [];
+            }
+            
+            setGrade(grade) {
+                this.grade = Utils.clamp(grade, 2, 5);
+            }
+            
+            generate() {
+                const problem = this.generateForGrade(this.grade);
+                this.problemHistory.push(problem);
+                return problem;
+            }
+            
+            generateForGrade(grade) {
+                const difficulty = this.getDifficultyFromElo();
+                
+                switch(grade) {
+                    case 2: return this.grade2Problem(difficulty);
+                    case 3: return this.grade3Problem(difficulty);
+                    case 4: return this.grade4Problem(difficulty);
+                    case 5: return this.grade5Problem(difficulty);
+                    default: return this.grade2Problem(difficulty);
+                }
+            }
+            
+            getDifficultyFromElo() {
+                if (this.playerElo < 900) return 'easy';
+                if (this.playerElo < 1100) return 'medium';
+                return 'hard';
+            }
+            
+            updateElo(correct, timeBonus = 0) {
+                const k = 32;
+                const expected = 1 / (1 + Math.pow(10, (1000 - this.playerElo) / 400));
+                const actual = correct ? 1 : 0;
+                this.playerElo += k * (actual - expected) + timeBonus;
+                this.playerElo = Utils.clamp(this.playerElo, 600, 1400);
+            }
+            
+            // Grade 2: Addition/Subtraction within 100 (CCSS 2.OA, 2.NBT)
+            grade2Problem(difficulty) {
+                const maxNum = difficulty === 'easy' ? 20 : difficulty === 'medium' ? 50 : 100;
+                const ops = ['+', '-'];
+                const op = ops[Utils.randomInt(0, 1)];
+                
+                let a, b, answer;
+                if (op === '+') {
+                    a = Utils.randomInt(1, maxNum);
+                    b = Utils.randomInt(1, maxNum - a);
+                    answer = a + b;
+                } else {
+                    a = Utils.randomInt(2, maxNum);
+                    b = Utils.randomInt(1, a - 1);
+                    answer = a - b;
+                }
+                
+                return this.createProblem(`${a} ${op} ${b}`, answer);
+            }
+            
+            // Grade 3: Multiplication/Division (CCSS 3.OA)
+            grade3Problem(difficulty) {
+                const maxFactor = difficulty === 'easy' ? 5 : difficulty === 'medium' ? 10 : 12;
+                const ops = ['×', '÷'];
+                const op = ops[Utils.randomInt(0, 1)];
+                
+                let a, b, answer;
+                if (op === '×') {
+                    a = Utils.randomInt(2, maxFactor);
+                    b = Utils.randomInt(2, maxFactor);
+                    answer = a * b;
+                } else {
+                    b = Utils.randomInt(2, maxFactor);
+                    answer = Utils.randomInt(2, maxFactor);
+                    a = b * answer;
+                }
+                
+                return this.createProblem(`${a} ${op} ${b}`, answer);
+            }
+            
+            // Grade 4: Multi-digit arithmetic, fractions (CCSS 4.NBT, 4.NF)
+            grade4Problem(difficulty) {
+                const type = Utils.randomInt(0, 2);
+                
+                if (type === 0) {
+                    // Multi-digit multiplication
+                    const a = Utils.randomInt(10, difficulty === 'easy' ? 20 : 50);
+                    const b = Utils.randomInt(2, difficulty === 'easy' ? 5 : 9);
+                    return this.createProblem(`${a} × ${b}`, a * b);
+                } else if (type === 1) {
+                    // Fraction addition (same denominator)
+                    const denom = [2, 4, 8, 10][Utils.randomInt(0, 3)];
+                    const a = Utils.randomInt(1, denom - 1);
+                    const b = Utils.randomInt(1, denom - a);
+                    const num = a + b;
+                    return this.createFractionProblem(a, denom, '+', b, denom, num, denom);
+                } else {
+                    // Division with remainder expressed as answer only
+                    const b = Utils.randomInt(2, 9);
+                    const answer = Utils.randomInt(5, 15);
+                    const a = b * answer;
+                    return this.createProblem(`${a} ÷ ${b}`, answer);
+                }
+            }
+            
+            // Grade 5: Decimals, fractions, coordinates (CCSS 5.NBT, 5.NF, 5.G)
+            grade5Problem(difficulty) {
+                const type = Utils.randomInt(0, 2);
+                
+                if (type === 0) {
+                    // Decimal operations
+                    const a = (Utils.randomInt(10, 99) / 10).toFixed(1);
+                    const b = (Utils.randomInt(10, 99) / 10).toFixed(1);
+                    const ops = ['+', '-'];
+                    const op = ops[Utils.randomInt(0, 1)];
+                    const answer = op === '+' 
+                        ? (parseFloat(a) + parseFloat(b)).toFixed(1)
+                        : (parseFloat(a) - parseFloat(b)).toFixed(1);
+                    return this.createProblem(`${a} ${op} ${b}`, parseFloat(answer));
+                } else if (type === 1) {
+                    // Fraction multiplication
+                    const n1 = Utils.randomInt(1, 5);
+                    const d1 = Utils.randomInt(2, 6);
+                    const n2 = Utils.randomInt(1, 5);
+                    const d2 = Utils.randomInt(2, 6);
+                    const numResult = n1 * n2;
+                    const denomResult = d1 * d2;
+                    return this.createFractionMultProblem(n1, d1, n2, d2, numResult, denomResult);
+                } else {
+                    // Coordinate/pattern
+                    const start = Utils.randomInt(2, 10);
+                    const step = Utils.randomInt(2, 5);
+                    const pos = Utils.randomInt(2, 4);
+                    const answer = start + step * pos;
+                    return this.createProblem(`Pattern: ${start}, ${start+step}, ${start+step*2}, ... What is term ${pos+1}?`, answer);
+                }
+            }
+            
+            createProblem(text, answer) {
+                const distractors = this.generateDistractors(answer);
+                const options = Utils.shuffle([answer, ...distractors]);
+                const correctIndex = options.indexOf(answer);
+                
+                return {
+                    text: `${text} = ?`,
+                    answer: answer,
+                    options: options,
+                    correctIndex: correctIndex
+                };
+            }
+            
+            createFractionProblem(n1, d1, op, n2, d2, numResult, denomResult) {
+                const text = `${n1}/${d1} ${op} ${n2}/${d2}`;
+                const answer = `${numResult}/${denomResult}`;
+                const distractors = [
+                    `${numResult + 1}/${denomResult}`,
+                    `${numResult}/${denomResult + 1}`,
+                    `${Math.max(1, numResult - 1)}/${denomResult}`
+                ];
+                const options = Utils.shuffle([answer, ...distractors]);
+                
+                return {
+                    text: `${text} = ?`,
+                    answer: answer,
+                    options: options,
+                    correctIndex: options.indexOf(answer),
+                    isFraction: true
+                };
+            }
+            
+            createFractionMultProblem(n1, d1, n2, d2, numResult, denomResult) {
+                const text = `${n1}/${d1} × ${n2}/${d2}`;
+                const answer = `${numResult}/${denomResult}`;
+                const distractors = [
+                    `${numResult + 1}/${denomResult}`,
+                    `${numResult}/${denomResult + 1}`,
+                    `${n1 + n2}/${d1 + d2}`
+                ];
+                const options = Utils.shuffle([answer, ...distractors]);
+                
+                return {
+                    text: `${text} = ?`,
+                    answer: answer,
+                    options: options,
+                    correctIndex: options.indexOf(answer),
+                    isFraction: true
+                };
+            }
+            
+            generateDistractors(answer) {
+                const isDecimal = !Number.isInteger(answer);
+                const distractors = new Set();
+                
+                while (distractors.size < 3) {
+                    let d;
+                    const variation = Utils.randomInt(1, 5);
+                    const sign = Math.random() > 0.5 ? 1 : -1;
+                    
+                    if (isDecimal) {
+                        d = parseFloat((answer + sign * variation * 0.1).toFixed(1));
+                    } else {
+                        d = answer + sign * variation;
+                    }
+                    
+                    if (d !== answer && d > 0) {
+                        distractors.add(d);
+                    }
+                }
+                
+                return Array.from(distractors);
+            }
+        }
+
+        // ========================================================================
+        // AI OPPONENT (Behavior Tree)
+        // ========================================================================
+        
+        class AIController {
+            constructor() {
+                this.state = 'idle';
+                this.targetX = 400;
+                this.targetY = 400;
+                this.shootCooldown = 0;
+                this.difficulty = 0.5; // 0-1 scale
+                this.hasBall = false;
+            }
+            
+            update(game, dt) {
+                this.shootCooldown = Math.max(0, this.shootCooldown - dt);
+                
+                // Behavior tree simulation
+                if (this.hasBall) {
+                    this.executeShootBehavior(game, dt);
+                } else {
+                    this.executeDefendBehavior(game, dt);
+                }
+            }
+            
+            executeShootBehavior(game, dt) {
+                const aiPlayer = game.aiPlayer;
+                const transform = aiPlayer.getComponent(Transform);
+                
+                // Move to shooting position
+                const shootX = CONFIG.HOOP_X - 200;
+                const shootY = CONFIG.COURT_HEIGHT / 2 + Utils.randomRange(-50, 50);
+                
+                const dx = shootX - transform.x;
+                const dy = shootY - transform.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist > 20) {
+                    const speed = 2 * (1 + this.difficulty * 0.5);
+                    transform.x += (dx / dist) * speed;
+                    transform.y += (dy / dist) * speed;
+                } else if (this.shootCooldown <= 0) {
+                    // Take shot
+                    this.takeShot(game, transform);
+                    this.hasBall = false;
+                    this.shootCooldown = 3000 + Utils.randomRange(-500, 500);
+                }
+            }
+            
+            executeDefendBehavior(game, dt) {
+                // Position between ball and hoop
+                const aiPlayer = game.aiPlayer;
+                const transform = aiPlayer.getComponent(Transform);
+                
+                const defenseX = 500;
+                const defenseY = CONFIG.COURT_HEIGHT / 2;
+                
+                const dx = defenseX - transform.x;
+                const dy = defenseY - transform.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist > 10) {
+                    transform.x += (dx / dist) * 1.5;
+                    transform.y += (dy / dist) * 1.5;
+                }
+            }
+            
+            takeShot(game, transform) {
+                // AI shoots with accuracy based on difficulty
+                const accuracy = 0.5 + this.difficulty * 0.3;
+                const made = Math.random() < accuracy;
+                
+                if (made) {
+                    game.aiScore += 2;
+                    game.audio.playSwish();
+                    game.audio.playCrowd();
+                } else {
+                    game.audio.playRimHit();
+                }
+                
+                // Create visual shot arc
+                game.createShotArc(transform.x, transform.y, made);
+            }
+            
+            giveBall() {
+                this.hasBall = true;
+            }
+        }
+
+        // ========================================================================
+        // INPUT HANDLER
+        // ========================================================================
+        
+        class InputHandler {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.keys = {};
+                this.touch = { active: false, x: 0, y: 0, startX: 0, startY: 0 };
+                this.joystick = { x: 0, y: 0 };
+                this.shooting = false;
+                this.shootPower = 0;
+                
+                this.setupKeyboard();
+                this.setupTouch();
+            }
+            
+            setupKeyboard() {
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        if (!this.shooting) {
+                            this.shooting = true;
+                            this.shootPower = 0;
+                        }
+                    }
+                });
+                
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                    if (e.code === 'Space') {
+                        this.shooting = false;
+                    }
+                });
+            }
+            
+            setupTouch() {
+                const joystick = document.getElementById('virtualJoystick');
+                const knob = document.getElementById('joystickKnob');
+                const shootBtn = document.getElementById('shootButton');
+                
+                joystick.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.touch.active = true;
+                    const rect = joystick.getBoundingClientRect();
+                    this.touch.startX = rect.left + rect.width / 2;
+                    this.touch.startY = rect.top + rect.height / 2;
+                });
+                
+                joystick.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!this.touch.active) return;
+                    
+                    const touch = e.touches[0];
+                    const dx = touch.clientX - this.touch.startX;
+                    const dy = touch.clientY - this.touch.startY;
+                    const dist = Math.min(50, Math.sqrt(dx*dx + dy*dy));
+                    const angle = Math.atan2(dy, dx);
+                    
+                    this.joystick.x = (dist / 50) * Math.cos(angle);
+                    this.joystick.y = (dist / 50) * Math.sin(angle);
+                    
+                    knob.style.transform = `translate(calc(-50% + ${this.joystick.x * 35}px), calc(-50% + ${this.joystick.y * 35}px))`;
+                });
+                
+                joystick.addEventListener('touchend', () => {
+                    this.touch.active = false;
+                    this.joystick.x = 0;
+                    this.joystick.y = 0;
+                    knob.style.transform = 'translate(-50%, -50%)';
+                });
+                
+                shootBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.shooting = true;
+                    this.shootPower = 0;
+                });
+                
+                shootBtn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.shooting = false;
+                });
+            }
+            
+            getMovement() {
+                let x = 0, y = 0;
+                
+                // Keyboard
+                if (this.keys['KeyW'] || this.keys['ArrowUp']) y -= 1;
+                if (this.keys['KeyS'] || this.keys['ArrowDown']) y += 1;
+                if (this.keys['KeyA'] || this.keys['ArrowLeft']) x -= 1;
+                if (this.keys['KeyD'] || this.keys['ArrowRight']) x += 1;
+                
+                // Touch joystick
+                if (Math.abs(this.joystick.x) > 0.1) x = this.joystick.x;
+                if (Math.abs(this.joystick.y) > 0.1) y = this.joystick.y;
+                
+                // Normalize
+                const mag = Math.sqrt(x*x + y*y);
+                if (mag > 1) {
+                    x /= mag;
+                    y /= mag;
+                }
+                
+                return { x, y };
+            }
+            
+            updateShootPower(dt) {
+                if (this.shooting) {
+                    this.shootPower = Math.min(1, this.shootPower + dt / 1000);
+                }
+                return this.shootPower;
+            }
+        }
+
+        // ========================================================================
+        // RENDERER (2.5D Procedural Graphics)
+        // ========================================================================
+        
+        class Renderer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.offscreen = document.createElement('canvas');
+                this.offCtx = this.offscreen.getContext('2d');
+                
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+            }
+            
+            resize() {
+                const container = this.canvas.parentElement;
+                const aspect = CONFIG.COURT_WIDTH / CONFIG.COURT_HEIGHT;
+                
+                let width = container.clientWidth;
+                let height = container.clientHeight;
+                
+                if (width / height > aspect) {
+                    width = height * aspect;
+                } else {
+                    height = width / aspect;
+                }
+                
+                this.canvas.width = CONFIG.COURT_WIDTH;
+                this.canvas.height = CONFIG.COURT_HEIGHT;
+                this.canvas.style.width = `${width}px`;
+                this.canvas.style.height = `${height}px`;
+                
+                this.offscreen.width = CONFIG.COURT_WIDTH;
+                this.offscreen.height = CONFIG.COURT_HEIGHT;
+            }
+            
+            clear() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+            
+            // Draw court with 2.5D perspective
+            drawCourt() {
+                const ctx = this.ctx;
+                const w = CONFIG.COURT_WIDTH;
+                const h = CONFIG.COURT_HEIGHT;
+                
+                // Court floor with perspective gradient
+                const floorGrad = ctx.createLinearGradient(0, h * 0.3, 0, h);
+                floorGrad.addColorStop(0, '#8B4513');
+                floorGrad.addColorStop(0.5, '#A0522D');
+                floorGrad.addColorStop(1, '#654321');
+                
+                ctx.fillStyle = floorGrad;
+                ctx.beginPath();
+                ctx.moveTo(0, h * 0.35);
+                ctx.lineTo(w, h * 0.35);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Court lines
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                
+                // Center circle
+                ctx.beginPath();
+                ctx.ellipse(w/2, h * 0.6, 80, 40, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Three point arc (simplified)
+                ctx.beginPath();
+                ctx.ellipse(w - 50, h * 0.6, 180, 90, 0, Math.PI * 0.6, Math.PI * 1.4);
+                ctx.stroke();
+                
+                // Key/Paint area
+                ctx.strokeRect(w - 180, h * 0.4, 180, h * 0.4);
+                
+                // Free throw circle
+                ctx.beginPath();
+                ctx.ellipse(w - 180, h * 0.6, 60, 30, 0, Math.PI * 0.5, Math.PI * 1.5);
+                ctx.stroke();
+                
+                // Wood plank lines
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 20; i++) {
+                    const y = h * 0.35 + i * 15;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(w, y);
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw backboard and hoop
+            drawHoop() {
+                const ctx = this.ctx;
+                const hoopX = CONFIG.HOOP_X;
+                const hoopY = CONFIG.HOOP_HEIGHT;
+                
+                // Backboard
+                ctx.fillStyle = 'rgba(255,255,255,0.8)';
+                ctx.fillRect(hoopX + 10, hoopY - 80, 10, 100);
+                
+                // Backboard outline
+                ctx.strokeStyle = '#e94560';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(hoopX + 10, hoopY - 80, 10, 100);
+                
+                // Rim
+                ctx.strokeStyle = '#ff6b35';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.ellipse(hoopX - CONFIG.RIM_RADIUS, hoopY, CONFIG.RIM_RADIUS, CONFIG.RIM_RADIUS * 0.3, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Net (simple lines)
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const x = hoopX - CONFIG.RIM_RADIUS + Math.cos(angle) * CONFIG.RIM_RADIUS;
+                    const baseY = hoopY + Math.sin(angle) * CONFIG.RIM_RADIUS * 0.3;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x, baseY);
+                    ctx.quadraticCurveTo(
+                        hoopX - CONFIG.RIM_RADIUS,
+                        baseY + 30,
+                        hoopX - CONFIG.RIM_RADIUS + (Math.random() - 0.5) * 10,
+                        baseY + 50
+                    );
+                    ctx.stroke();
+                }
+            }
+            
+            // Procedurally draw basketball
+            drawBall(x, y, z, rotation = 0) {
+                const ctx = this.ctx;
+                const scale = 1 + z * 0.001; // Depth scaling
+                const r = CONFIG.BALL_RADIUS * scale;
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rotation);
+                
+                // Ball base (orange gradient)
+                const ballGrad = ctx.createRadialGradient(-r*0.3, -r*0.3, 0, 0, 0, r);
+                ballGrad.addColorStop(0, '#ff8c42');
+                ballGrad.addColorStop(0.7, '#e85d04');
+                ballGrad.addColorStop(1, '#9d0208');
+                
+                ctx.fillStyle = ballGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Ball lines (ribs)
+                ctx.strokeStyle = '#1a1a1a';
+                ctx.lineWidth = 2;
+                
+                // Vertical line
+                ctx.beginPath();
+                ctx.ellipse(0, 0, r * 0.1, r, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Horizontal line
+                ctx.beginPath();
+                ctx.moveTo(-r, 0);
+                ctx.lineTo(r, 0);
+                ctx.stroke();
+                
+                // Curved lines
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.6, Math.PI * 0.2, Math.PI * 0.8);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, r * 0.6, -Math.PI * 0.8, -Math.PI * 0.2);
+                ctx.stroke();
+                
+                // Highlight
+                ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(-r*0.3, -r*0.3, r*0.3, r*0.2, -Math.PI/4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+            
+            // Draw player avatar
+            drawPlayer(x, y, color, isPlayer = true, facingRight = true) {
+                const ctx = this.ctx;
+                
+                ctx.save();
+                ctx.translate(x, y);
+                if (!facingRight) ctx.scale(-1, 1);
+                
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(0, 45, 25, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Body
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(0, 10, 20, 30, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Jersey number
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(isPlayer ? '23' : '00', 0, 18);
+                
+                // Head
+                const skinColor = isPlayer ? '#e0ac69' : '#8d5524';
+                ctx.fillStyle = skinColor;
+                ctx.beginPath();
+                ctx.arc(0, -25, 18, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Hair
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.arc(0, -32, 15, Math.PI, Math.PI * 2);
+                ctx.fill();
+                
+                // Eyes
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(-6, -25, 4, 0, Math.PI * 2);
+                ctx.arc(6, -25, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.fillStyle = '#1a1a1a';
+                ctx.beginPath();
+                ctx.arc(-5, -25, 2, 0, Math.PI * 2);
+                ctx.arc(7, -25, 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Arms
+                ctx.fillStyle = skinColor;
+                ctx.beginPath();
+                ctx.ellipse(-25, 5, 8, 20, Math.PI * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(25, 5, 8, 20, -Math.PI * 0.2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Legs
+                ctx.fillStyle = color;
+                ctx.fillRect(-15, 35, 12, 25);
+                ctx.fillRect(3, 35, 12, 25);
+                
+                // Shoes
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(-17, 55, 16, 8);
+                ctx.fillRect(1, 55, 16, 8);
+                
+                ctx.restore();
+            }
+            
+            // Draw shot arc (trajectory preview)
+            drawShotArc(points, progress) {
+                if (!points || points.length < 2) return;
+                
+                const ctx = this.ctx;
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                
+                ctx.beginPath();
+                const endIndex = Math.floor(points.length * progress);
+                
+                for (let i = 0; i <= endIndex && i < points.length; i++) {
+                    if (i === 0) {
+                        ctx.moveTo(points[i].x, points[i].y);
+                    } else {
+                        ctx.lineTo(points[i].x, points[i].y);
+                    }
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Draw power meter
+            drawPowerMeter(power) {
+                const meter = document.getElementById('powerMeter');
+                const fill = document.getElementById('powerFill');
+                
+                if (power > 0) {
+                    meter.style.display = 'block';
+                    fill.style.height = `${power * 100}%`;
+                } else {
+                    meter.style.display = 'none';
+                }
+            }
+            
+            // Draw streak fire effect
+            drawFireEffect(x, y) {
+                const ctx = this.ctx;
+                const time = Date.now() / 100;
+                
+                for (let i = 0; i < 10; i++) {
+                    const offset = Math.sin(time + i) * 5;
+                    const size = 10 + Math.sin(time * 2 + i) * 5;
+                    
+                    const gradient = ctx.createRadialGradient(
+                        x + offset, y - 50 - i * 5,
+                        0,
+                        x + offset, y - 50 - i * 5,
+                        size
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 200, 0, 0.8)');
+                    gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.5)');
+                    gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(x + offset, y - 50 - i * 5, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // ========================================================================
+        // PHYSICS ENGINE
+        // ========================================================================
+        
+        class PhysicsEngine {
+            constructor() {
+                this.entities = [];
+            }
+            
+            addEntity(entity) {
+                this.entities.push(entity);
+            }
+            
+            removeEntity(entity) {
+                const idx = this.entities.indexOf(entity);
+                if (idx !== -1) this.entities.splice(idx, 1);
+            }
+            
+            update(dt) {
+                for (const entity of this.entities) {
+                    if (!entity.active) continue;
+                    
+                    const transform = entity.getComponent(Transform);
+                    const velocity = entity.getComponent(Velocity);
+                    
+                    if (transform && velocity) {
+                        // Store previous position for interpolation
+                        transform.prevX = transform.x;
+                        transform.prevY = transform.y;
+                        
+                        // Apply gravity
+                        velocity.vy += CONFIG.GRAVITY;
+                        
+                        // Update position
+                        transform.x += velocity.vx;
+                        transform.y += velocity.vy;
+                        transform.z += velocity.vz;
+                        
+                        // Apply air resistance
+                        velocity.vx *= 0.99;
+                        velocity.vz *= 0.99;
+                    }
+                }
+            }
+            
+            // Calculate shot trajectory
+            calculateTrajectory(startX, startY, targetX, targetY, power) {
+                const points = [];
+                const dx = targetX - startX;
+                const dy = targetY - startY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                // Calculate initial velocity for arc
+                const angle = Math.atan2(-dist * 0.5, dist); // Arc upward
+                const speed = power * 15;
+                
+                let vx = Math.cos(angle) * speed * (dx > 0 ? 1 : -1);
+                let vy = -Math.abs(Math.sin(angle) * speed) - 5;
+                
+                let x = startX;
+                let y = startY;
+                
+                for (let t = 0; t < 100; t++) {
+                    points.push({ x, y });
+                    
+                    vy += CONFIG.GRAVITY;
+                    x += vx;
+                    y += vy;
+                    
+                    // Stop if below court or reached hoop area
+                    if (y > CONFIG.COURT_HEIGHT || x > CONFIG.HOOP_X) break;
+                }
+                
+                return points;
+            }
+            
+            // Check if ball goes through hoop
+            checkBasket(ballX, ballY, prevY) {
+                const hoopX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS;
+                const hoopY = CONFIG.HOOP_HEIGHT;
+                
+                // Ball must be descending and pass through rim plane
+                if (prevY < hoopY && ballY >= hoopY) {
+                    const dx = Math.abs(ballX - hoopX);
+                    if (dx < CONFIG.RIM_RADIUS - CONFIG.BALL_RADIUS * 0.5) {
+                        return true; // Swish!
+                    }
+                }
+                return false;
+            }
+            
+            // Check rim collision
+            checkRimCollision(ballX, ballY) {
+                const rimLeftX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS * 2;
+                const rimRightX = CONFIG.HOOP_X;
+                const rimY = CONFIG.HOOP_HEIGHT;
+                
+                // Simple AABB for rim
+                const rimWidth = CONFIG.RIM_RADIUS * 2;
+                const rimHeight = 10;
+                
+                if (ballX > rimLeftX - CONFIG.BALL_RADIUS && 
+                    ballX < rimRightX + CONFIG.BALL_RADIUS &&
+                    ballY > rimY - rimHeight - CONFIG.BALL_RADIUS &&
+                    ballY < rimY + CONFIG.BALL_RADIUS) {
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // ========================================================================
+        // MAIN GAME CLASS
+        // ========================================================================
+        
+        class MathHoopsGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.renderer = new Renderer(this.canvas);
+                this.physics = new PhysicsEngine();
+                this.audio = new AudioSynth();
+                this.input = new InputHandler(this.canvas);
+                this.mathGen = new MathGenerator();
+                this.ai = new AIController();
+                
+                // State machine
+                this.stateMachine = new State('Root');
+                this.stateMachine.addChild(new BootState());
+                this.stateMachine.addChild(new MenuState());
+                this.stateMachine.addChild(new GameplayState());
+                this.stateMachine.addChild(new SummaryState());
+                
+                // Game state
+                this.playerScore = 0;
+                this.aiScore = 0;
+                this.gameTimer = CONFIG.GAME_DURATION;
+                this.streak = 0;
+                this.bestStreak = 0;
+                this.isOnFire = false;
+                this.mathAttempts = 0;
+                this.mathCorrect = 0;
+                this.shotAttempts = 0;
+                this.shotsMade = 0;
+                this.currentProblem = null;
+                this.lastAnswerCorrect = false;
+                this.mathStartTime = 0;
+                
+                // Entities
+                this.player = null;
+                this.aiPlayer = null;
+                this.ball = null;
+                this.shotArcs = [];
+                
+                // Game loop
+                this.lastTime = 0;
+                this.accumulator = 0;
+                this.running = false;
+                
+                this.setupUI();
+                this.init();
+            }
+            
+            setupUI() {
+                // Start button
+                document.getElementById('startBtn').addEventListener('click', () => {
+                    this.audio.init();
+                    this.audio.playWhistle();
+                    this.stateMachine.transition(this, 'Gameplay');
+                });
+                
+                // Grade selection
+                document.querySelectorAll('.grade-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.grade-btn').forEach(b => b.classList.remove('selected'));
+                        e.target.classList.add('selected');
+                        this.mathGen.setGrade(parseInt(e.target.dataset.grade));
+                    });
+                });
+                
+                // Answer buttons
+                document.querySelectorAll('.answer-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.dataset.index);
+                        this.handleMathAnswer(index);
+                    });
+                });
+                
+                // Play again
+                document.getElementById('playAgainBtn').addEventListener('click', () => {
+                    this.audio.playWhistle();
+                    this.stateMachine.transition(this, 'Gameplay');
+                });
+                
+                // Main menu
+                document.getElementById('menuBtn').addEventListener('click', () => {
+                    this.stateMachine.transition(this, 'Menu');
+                });
+            }
+            
+            init() {
+                // Create player entity
+                this.player = new Entity();
+                this.player.addComponent(new Transform(200, 400, 0));
+                this.player.addComponent(new Velocity());
+                this.player.addComponent(new Collider('circle', 0, 0, 25));
+                
+                // Create AI player entity
+                this.aiPlayer = new Entity();
+                this.aiPlayer.addComponent(new Transform(500, 400, 0));
+                this.aiPlayer.addComponent(new Velocity());
+                this.aiPlayer.addComponent(new Collider('circle', 0, 0, 25));
+                
+                // Create ball entity
+                this.ball = new Entity();
+                this.ball.addComponent(new Transform(200, 370, 0));
+                this.ball.addComponent(new Velocity());
+                this.ball.addComponent(new Collider('circle', 0, 0, CONFIG.BALL_RADIUS));
+                
+                // Start boot sequence
+                this.stateMachine.transition(this, 'Boot');
+                
+                // Start game loop
+                this.running = true;
+                requestAnimationFrame((t) => this.gameLoop(t));
+            }
+            
+            resetGame() {
+                this.playerScore = 0;
+                this.aiScore = 0;
+                this.gameTimer = CONFIG.GAME_DURATION;
+                this.streak = 0;
+                this.bestStreak = 0;
+                this.isOnFire = false;
+                this.mathAttempts = 0;
+                this.mathCorrect = 0;
+                this.shotAttempts = 0;
+                this.shotsMade = 0;
+                this.shotArcs = [];
+                
+                // Reset positions
+                const playerT = this.player.getComponent(Transform);
+                playerT.x = 200;
+                playerT.y = 400;
+                
+                const aiT = this.aiPlayer.getComponent(Transform);
+                aiT.x = 500;
+                aiT.y = 400;
+                
+                const ballT = this.ball.getComponent(Transform);
+                ballT.x = 200;
+                ballT.y = 370;
+                
+                this.mathGen.playerElo = 1000;
+                this.ai.difficulty = 0.5;
+                
+                this.updateUI();
+            }
+            
+            gameLoop(timestamp) {
+                if (!this.running) return;
+                
+                const dt = timestamp - this.lastTime;
+                this.lastTime = timestamp;
+                
+                // Fixed timestep with accumulator
+                this.accumulator += dt;
+                let steps = 0;
+                
+                while (this.accumulator >= CONFIG.FIXED_TIMESTEP && steps < CONFIG.MAX_FRAME_SKIP) {
+                    this.update(CONFIG.FIXED_TIMESTEP);
+                    this.accumulator -= CONFIG.FIXED_TIMESTEP;
+                    steps++;
+                }
+                
+                // Render with interpolation
+                const alpha = this.accumulator / CONFIG.FIXED_TIMESTEP;
+                this.render(alpha);
+                
+                requestAnimationFrame((t) => this.gameLoop(t));
+            }
+            
+            update(dt) {
+                // Update current state
+                if (this.stateMachine.currentChild) {
+                    this.stateMachine.currentChild.update(this, dt);
+                }
+            }
+            
+            updateGameplay(dt) {
+                // Update game timer
+                this.gameTimer -= dt / 1000;
+                if (this.gameTimer <= 0) {
+                    this.gameTimer = 0;
+                    this.audio.playWhistle();
+                    this.stateMachine.transition(this, 'Summary');
+                    return;
+                }
+                
+                // Player movement
+                const movement = this.input.getMovement();
+                const playerT = this.player.getComponent(Transform);
+                const speed = this.isOnFire ? 4 * CONFIG.TURBO_MULTIPLIER : 4;
+                
+                playerT.x += movement.x * speed;
+                playerT.y += movement.y * speed;
+                
+                // Clamp player to court
+                playerT.x = Utils.clamp(playerT.x, 50, CONFIG.COURT_WIDTH - 100);
+                playerT.y = Utils.clamp(playerT.y, CONFIG.COURT_HEIGHT * 0.4, CONFIG.COURT_HEIGHT - 60);
+                
+                // Ball follows player
+                const ballT = this.ball.getComponent(Transform);
+                if (!this.ballInFlight) {
+                    ballT.x = playerT.x + 30;
+                    ballT.y = playerT.y - 30;
+                }
+                
+                // Handle shooting
+                const power = this.input.updateShootPower(dt);
+                this.renderer.drawPowerMeter(power);
+                
+                if (!this.input.shooting && power > 0 && !this.ballInFlight) {
+                    this.takeShot(power);
+                }
+                
+                // Update ball in flight
+                if (this.ballInFlight) {
+                    this.updateBallFlight(dt);
+                }
+                
+                // Update AI
+                this.ai.update(this, dt);
+                
+                // Update shot arcs
+                this.shotArcs = this.shotArcs.filter(arc => {
+                    arc.progress += dt / 500;
+                    return arc.progress < 1;
+                });
+                
+                this.updateUI();
+            }
+            
+            takeShot(power) {
+                this.shotAttempts++;
+                this.ballInFlight = true;
+                
+                const playerT = this.player.getComponent(Transform);
+                const ballT = this.ball.getComponent(Transform);
+                const ballV = this.ball.getComponent(Velocity);
+                
+                // Calculate shot velocity
+                const targetX = CONFIG.HOOP_X - CONFIG.RIM_RADIUS;
+                const targetY = CONFIG.HOOP_HEIGHT;
+                
+                const dx = targetX - ballT.x;
+                const dy = targetY - ballT.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                // Add some randomness based on power accuracy
+                const optimalPower = 0.7;
+                const powerError = Math.abs(power - optimalPower) * 2;
+                const accuracy = 1 - powerError * 0.5;
+                
+                // Assisted aiming with error
+                const aimError = (1 - accuracy) * 50;
+                const targetXAdjusted = targetX + (Math.random() - 0.5) * aimError;
+                
+                const shotSpeed = 8 + power * 6;
+                const angle = Math.atan2(dy - dist * 0.5, dx);
+                
+                ballV.vx = Math.cos(angle) * shotSpeed + (Math.random() - 0.5) * aimError * 0.1;
+                ballV.vy = -shotSpeed * 0.8 - power * 3;
+                
+                this.physics.addEntity(this.ball);
+                this.audio.playBounce(1.5);
+            }
+            
+            updateBallFlight(dt) {
+                const ballT = this.ball.getComponent(Transform);
+                const ballV = this.ball.getComponent(Velocity);
+                
+                const prevY = ballT.y;
+                
+                // Apply physics
+                ballV.vy += CONFIG.GRAVITY;
+                ballT.x += ballV.vx;
+                ballT.y += ballV.vy;
+                
+                // Check for basket
+                if (this.physics.checkBasket(ballT.x, ballT.y, prevY)) {
+                    this.handleMadeBasket();
+                    return;
+                }
+                
+                // Check rim collision
+                if (this.physics.checkRimCollision(ballT.x, ballT.y)) {
+                    ballV.vy *= -0.6; // Bounce off rim
+                    ballV.vx *= 0.8;
+                    this.audio.playRimHit();
+                }
+                
+                // Check if ball is out of bounds or on ground
+                if (ballT.y > CONFIG.COURT_HEIGHT - 50 || ballT.x > CONFIG.COURT_WIDTH) {
+                    this.handleMissedBasket();
+                }
+            }
+            
+            handleMadeBasket() {
+                this.ballInFlight = false;
+                this.shotsMade++;
+                
+                // Play sounds
+                this.audio.playSwish();
+                this.audio.playCrowd();
+                
+                // Go to math challenge
+                const gameplayState = this.stateMachine.children.get('Gameplay');
+                gameplayState.transition(this, 'MathSub');
+                
+                // Reset ball position
+                this.resetBall();
+            }
+            
+            handleMissedBasket() {
+                this.ballInFlight = false;
+                this.streak = 0;
+                this.isOnFire = false;
+                document.getElementById('streakIndicator').style.display = 'none';
+                
+                // Give ball to AI sometimes
+                if (Math.random() > 0.5) {
+                    this.ai.giveBall();
+                }
+                
+                this.resetBall();
+            }
+            
+            resetBall() {
+                const playerT = this.player.getComponent(Transform);
+                const ballT = this.ball.getComponent(Transform);
+                const ballV = this.ball.getComponent(Velocity);
+                
+                ballT.x = playerT.x + 30;
+                ballT.y = playerT.y - 30;
+                ballV.vx = 0;
+                ballV.vy = 0;
+                
+                this.physics.removeEntity(this.ball);
+            }
+            
+            generateMathProblem() {
+                this.currentProblem = this.mathGen.generate();
+                
+                document.getElementById('mathProblem').textContent = this.currentProblem.text;
+                
+                const buttons = document.querySelectorAll('.answer-btn');
+                buttons.forEach((btn, i) => {
+                    btn.textContent = this.currentProblem.options[i];
+                });
+            }
+            
+            handleMathAnswer(selectedIndex) {
+                this.mathAttempts++;
+                
+                const correct = selectedIndex === this.currentProblem.correctIndex;
+                this.lastAnswerCorrect = correct;
+                
+                if (correct) {
+                    this.mathCorrect++;
+                    this.streak++;
+                    this.bestStreak = Math.max(this.bestStreak, this.streak);
+                    
+                    // Award points
+                    const points = this.isOnFire ? 3 : 2;
+                    this.playerScore += points;
+                    
+                    // Check for fire mode
+                    if (this.streak >= CONFIG.STREAK_FOR_FIRE && !this.isOnFire) {
+                        this.isOnFire = true;
+                        document.getElementById('streakIndicator').style.display = 'block';
+                    }
+                    
+                    // Time bonus for Elo
+                    const elapsed = (performance.now() - this.mathStartTime) / 1000;
+                    const timeBonus = Math.max(0, (CONFIG.MATH_TIME_LIMIT - elapsed) * 2);
+                    this.mathGen.updateElo(true, timeBonus);
+                    
+                    this.audio.playCorrect();
+                } else {
+                    this.streak = 0;
+                    this.isOnFire = false;
+                    document.getElementById('streakIndicator').style.display = 'none';
+                    
+                    this.mathGen.updateElo(false);
+                    this.audio.playWrong();
+                }
+                
+                // Transition to feedback
+                const gameplayState = this.stateMachine.children.get('Gameplay');
+                gameplayState.transition(this, 'FeedbackSub');
+            }
+            
+            createShotArc(startX, startY, made) {
+                const points = this.physics.calculateTrajectory(
+                    startX, startY,
+                    CONFIG.HOOP_X - CONFIG.RIM_RADIUS,
+                    CONFIG.HOOP_HEIGHT,
+                    0.7
+                );
+                
+                this.shotArcs.push({
+                    points,
+                    progress: 0,
+                    made
+                });
+            }
+            
+            updateUI() {
+                document.getElementById('playerScore').textContent = this.playerScore;
+                document.getElementById('aiScore').textContent = this.aiScore;
+                document.getElementById('gameTimer').textContent = Math.ceil(this.gameTimer);
+            }
+            
+            render(alpha) {
+                this.renderer.clear();
+                
+                // Always draw court and hoop
+                this.renderer.drawCourt();
+                this.renderer.drawHoop();
+                
+                // Only render game objects during gameplay
+                const currentState = this.stateMachine.currentChild;
+                if (currentState && currentState.name === 'Gameplay') {
+                    // Draw shot arcs
+                    for (const arc of this.shotArcs) {
+                        this.renderer.drawShotArc(arc.points, arc.progress);
+                    }
+                    
+                    // Get interpolated positions
+                    const playerT = this.player.getComponent(Transform);
+                    const aiT = this.aiPlayer.getComponent(Transform);
+                    const ballT = this.ball.getComponent(Transform);
+                    
+                    // Determine facing direction
+                    const playerFacing = ballT.x > playerT.x;
+                    const aiFacing = CONFIG.HOOP_X > aiT.x;
+                    
+                    // Z-sort entities for painter's algorithm
+                    const entities = [
+                        { type: 'player', y: playerT.y, data: { t: playerT, facing: playerFacing } },
+                        { type: 'ai', y: aiT.y, data: { t: aiT, facing: aiFacing } },
+                        { type: 'ball', y: ballT.y, data: { t: ballT } }
+                    ];
+                    
+                    entities.sort((a, b) => a.y - b.y);
+                    
+                    for (const entity of entities) {
+                        if (entity.type === 'player') {
+                            // Fire effect
+                            if (this.isOnFire) {
+                                this.renderer.drawFireEffect(entity.data.t.x, entity.data.t.y);
+                            }
+                            this.renderer.drawPlayer(
+                                entity.data.t.x, 
+                                entity.data.t.y, 
+                                '#e94560', 
+                                true, 
+                                entity.data.facing
+                            );
+                        } else if (entity.type === 'ai') {
+                            this.renderer.drawPlayer(
+                                entity.data.t.x, 
+                                entity.data.t.y, 
+                                '#4361ee', 
+                                false, 
+                                entity.data.facing
+                            );
+                        } else if (entity.type === 'ball') {
+                            const rotation = this.ballInFlight 
+                                ? performance.now() / 100 
+                                : 0;
+                            this.renderer.drawBall(
+                                entity.data.t.x, 
+                                entity.data.t.y, 
+                                entity.data.t.z,
+                                rotation
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        // ========================================================================
+        // INITIALIZATION
+        // ========================================================================
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            window.game = new MathHoopsGame();
+        });
+
+    })();
+    </script>
 </body>
-
 </html>
