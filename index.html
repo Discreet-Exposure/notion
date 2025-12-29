@@ -3249,6 +3249,7 @@
                 // Use ball position for trajectory calculation
                 const dx = targetX - ballT.x;
                 const dy = targetY - ballT.y;
+                const actualDist = Math.sqrt(dx*dx + dy*dy);
                 
                 // Calculate optimal power based on distance (same formula as power meter)
                 const minDist = 150;
@@ -3256,51 +3257,68 @@
                 const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
                 const optimalPower = 0.45 + normalizedDist * 0.45;
                 
-                // Check if this is a "perfect" shot (within 5% tolerance of optimal)
+                // Check shot accuracy - MUCH more forgiving!
+                // Within 15% = perfect shot (guaranteed make)
+                // Within 30% = good shot (high chance)
+                // Beyond 30% = poor shot (low chance)
                 const powerError = Math.abs(power - optimalPower);
-                const perfectTolerance = 0.05;
+                const perfectTolerance = 0.15; // 15% tolerance for perfect
+                const goodTolerance = 0.30;    // 30% tolerance for good
+                
                 this.perfectShot = powerError <= perfectTolerance;
+                this.goodShot = powerError <= goodTolerance;
                 this.shotPower = power;
                 
-                // Calculate projectile motion to hit the target
-                // We want the ball to arc nicely and land in the hoop
-                const gravity = CONFIG.GRAVITY;
+                // Simple, reliable trajectory calculation
+                // Use a fixed arc that scales with distance
+                const shotSpeed = 8 + power * 4; // Base speed + power bonus
                 
-                // For a perfect shot, calculate exact velocities needed
-                // Using projectile motion equations:
-                // We want the ball to reach targetX, targetY with a nice arc
+                // Calculate angle to target with arc
+                // Higher arc for further shots
+                const baseAngle = Math.atan2(dy, dx);
+                const arcBoost = 0.3 + (actualDist / 500) * 0.2; // More arc for distance
+                const launchAngle = baseAngle - arcBoost;
                 
-                // Time of flight based on power (higher power = faster shot)
-                const baseFlightTime = 0.8 + (1 - power) * 0.4; // 0.8s to 1.2s
-                const flightTime = baseFlightTime * (dist / 300); // Scale by distance
-                
-                // Calculate required velocities for perfect shot
-                // x = x0 + vx * t  =>  vx = dx / t
-                // y = y0 + vy * t + 0.5 * g * t^2  =>  vy = (dy - 0.5 * g * t^2) / t
-                const perfectVx = dx / flightTime;
-                const perfectVy = (dy - 0.5 * gravity * flightTime * flightTime) / flightTime;
+                // Calculate velocities
+                const speedMultiplier = 1 + (actualDist / 400); // Faster for longer shots
+                const vx = Math.cos(launchAngle) * shotSpeed * speedMultiplier;
+                const vy = Math.sin(launchAngle) * shotSpeed * speedMultiplier - 2; // Upward bias
                 
                 if (this.perfectShot) {
-                    // Perfect timing - ball goes exactly where it should
-                    ballV.vx = perfectVx;
-                    ballV.vy = perfectVy;
+                    // Perfect shot - aim directly at hoop with perfect arc
+                    const flightFrames = Math.max(30, actualDist / 6); // Frames to reach target
+                    const gravity = CONFIG.GRAVITY;
+                    
+                    // Calculate exact velocities to land in hoop
+                    ballV.vx = dx / flightFrames;
+                    ballV.vy = (dy - 0.5 * gravity * flightFrames * flightFrames) / flightFrames;
+                    
+                    // Clamp to reasonable values
+                    ballV.vx = Utils.clamp(ballV.vx, 2, 15);
+                    ballV.vy = Utils.clamp(ballV.vy, -15, -3);
+                } else if (this.goodShot) {
+                    // Good shot - small random error
+                    const errorScale = (powerError - perfectTolerance) / (goodTolerance - perfectTolerance);
+                    const maxError = errorScale * 2;
+                    
+                    ballV.vx = vx + (Math.random() - 0.5) * maxError;
+                    ballV.vy = vy + (Math.random() - 0.5) * maxError;
                 } else {
-                    // Imperfect shot - add error proportional to how far off the timing was
-                    const errorMagnitude = powerError * 3; // Scale error
+                    // Poor shot - larger error based on how bad the timing was
+                    const errorScale = Math.min(powerError * 3, 1);
+                    const maxError = 3 + errorScale * 4;
                     
-                    // Direction of error based on whether over or under powered
+                    // Over/under powered affects direction
                     const overPowered = power > optimalPower;
+                    const directionBias = overPowered ? 1.5 : -1.5;
                     
-                    // Overpowered shots go long/high, underpowered shots fall short
-                    const vxError = overPowered ? errorMagnitude * 30 : -errorMagnitude * 20;
-                    const vyError = overPowered ? -errorMagnitude * 40 : errorMagnitude * 30;
-                    
-                    // Add some randomness for imperfect shots
-                    const randomError = (Math.random() - 0.5) * errorMagnitude * 20;
-                    
-                    ballV.vx = perfectVx + vxError + randomError;
-                    ballV.vy = perfectVy + vyError;
+                    ballV.vx = vx + directionBias + (Math.random() - 0.5) * maxError;
+                    ballV.vy = vy + (Math.random() - 0.5) * maxError;
                 }
+                
+                // Safety clamps to prevent glitchy physics
+                ballV.vx = Utils.clamp(ballV.vx, -20, 20);
+                ballV.vy = Utils.clamp(ballV.vy, -20, 10);
                 
                 this.physics.addEntity(this.ball);
                 this.audio.playBounce(1.5);
