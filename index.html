@@ -1865,6 +1865,7 @@
                     game.aiScore += 2;
                     game.audio.playSwish();
                     game.audio.playCrowd();
+                    game.renderer.triggerCheer(); // Fans cheer for AI shots too
                 } else {
                     game.audio.playRimHit();
                 }
@@ -2058,58 +2059,341 @@
                 this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             }
             
-            // Draw court with 2.5D perspective
+            // Fan cheering state
+            cheerTimer = 0;
+            fans = [];
+            
+            // Initialize fans in the bleachers
+            initFans() {
+                this.fans = [];
+                const w = CONFIG.COURT_WIDTH;
+                const h = CONFIG.COURT_HEIGHT;
+                
+                // Create rows of fans in bleachers
+                const rows = 4;
+                const fansPerRow = 25;
+                
+                for (let row = 0; row < rows; row++) {
+                    const rowY = h * 0.08 + row * 22;
+                    const rowWidth = w * 0.9 - row * 30;
+                    const startX = (w - rowWidth) / 2;
+                    
+                    for (let i = 0; i < fansPerRow - row * 2; i++) {
+                        const fanX = startX + (i / (fansPerRow - row * 2 - 1)) * rowWidth;
+                        this.fans.push({
+                            x: fanX,
+                            y: rowY,
+                            color: this.randomFanColor(),
+                            skinTone: this.randomSkinTone(),
+                            phase: Math.random() * Math.PI * 2,
+                            armOffset: 0,
+                            jumpOffset: 0,
+                            hasSign: Math.random() < 0.15,
+                            signColor: `hsl(${Math.random() * 360}, 70%, 60%)`
+                        });
+                    }
+                }
+            }
+            
+            randomFanColor() {
+                const colors = ['#e94560', '#4361ee', '#3a0ca3', '#f72585', '#7209b7', 
+                               '#4cc9f0', '#06d6a0', '#ffd166', '#ef476f', '#118ab2'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            randomSkinTone() {
+                const tones = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#5c3d2e'];
+                return tones[Math.floor(Math.random() * tones.length)];
+            }
+            
+            // Trigger fan cheering
+            triggerCheer() {
+                this.cheerTimer = 2000; // 2 seconds of cheering
+            }
+            
+            // Update cheer animation
+            updateCheer(dt) {
+                if (this.cheerTimer > 0) {
+                    this.cheerTimer = Math.max(0, this.cheerTimer - dt);
+                }
+            }
+            
+            // Draw court with 2.5D perspective, bleachers, and fans
             drawCourt() {
                 const ctx = this.ctx;
                 const w = CONFIG.COURT_WIDTH;
                 const h = CONFIG.COURT_HEIGHT;
                 
-                // Court floor with perspective gradient
-                const floorGrad = ctx.createLinearGradient(0, h * 0.3, 0, h);
-                floorGrad.addColorStop(0, '#8B4513');
-                floorGrad.addColorStop(0.5, '#A0522D');
-                floorGrad.addColorStop(1, '#654321');
+                // Initialize fans if not done
+                if (this.fans.length === 0) {
+                    this.initFans();
+                }
+                
+                // === ARENA BACKGROUND ===
+                // Dark arena ceiling/background
+                const arenaGrad = ctx.createLinearGradient(0, 0, 0, h * 0.35);
+                arenaGrad.addColorStop(0, '#1a1a2e');
+                arenaGrad.addColorStop(1, '#16213e');
+                ctx.fillStyle = arenaGrad;
+                ctx.fillRect(0, 0, w, h * 0.35);
+                
+                // === BLEACHERS ===
+                this.drawBleachers(ctx, w, h);
+                
+                // === FANS ===
+                this.drawFans(ctx);
+                
+                // === COURT FLOOR ===
+                // Main hardwood floor
+                const floorGrad = ctx.createLinearGradient(0, h * 0.32, 0, h);
+                floorGrad.addColorStop(0, '#d4a574');
+                floorGrad.addColorStop(0.3, '#c4956a');
+                floorGrad.addColorStop(0.7, '#b8895e');
+                floorGrad.addColorStop(1, '#a07850');
                 
                 ctx.fillStyle = floorGrad;
                 ctx.beginPath();
-                ctx.moveTo(0, h * 0.35);
-                ctx.lineTo(w, h * 0.35);
+                ctx.moveTo(0, h * 0.32);
+                ctx.lineTo(w, h * 0.32);
                 ctx.lineTo(w, h);
                 ctx.lineTo(0, h);
                 ctx.closePath();
                 ctx.fill();
                 
-                // Court lines
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
-                
-                // Center circle
-                ctx.beginPath();
-                ctx.ellipse(w/2, h * 0.6, 80, 40, 0, 0, Math.PI * 2);
-                ctx.stroke();
-                
-                // Three point arc (simplified)
-                ctx.beginPath();
-                ctx.ellipse(w - 50, h * 0.6, 180, 90, 0, Math.PI * 0.6, Math.PI * 1.4);
-                ctx.stroke();
-                
-                // Key/Paint area
-                ctx.strokeRect(w - 180, h * 0.4, 180, h * 0.4);
-                
-                // Free throw circle
-                ctx.beginPath();
-                ctx.ellipse(w - 180, h * 0.6, 60, 30, 0, Math.PI * 0.5, Math.PI * 1.5);
-                ctx.stroke();
-                
-                // Wood plank lines
-                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                // Wood plank effect
+                ctx.strokeStyle = 'rgba(139, 69, 19, 0.15)';
                 ctx.lineWidth = 1;
-                for (let i = 0; i < 20; i++) {
-                    const y = h * 0.35 + i * 15;
+                for (let i = 0; i < 25; i++) {
+                    const y = h * 0.32 + i * 12;
                     ctx.beginPath();
                     ctx.moveTo(0, y);
                     ctx.lineTo(w, y);
                     ctx.stroke();
+                }
+                
+                // Vertical plank seams
+                ctx.strokeStyle = 'rgba(139, 69, 19, 0.08)';
+                for (let i = 0; i < 15; i++) {
+                    const x = i * 55 + (i % 2) * 25;
+                    ctx.beginPath();
+                    ctx.moveTo(x, h * 0.32);
+                    ctx.lineTo(x, h);
+                    ctx.stroke();
+                }
+                
+                // Court boundary line
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(20, h * 0.36, w - 40, h * 0.6);
+                
+                // === COURT MARKINGS ===
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                
+                // Center court line
+                ctx.beginPath();
+                ctx.moveTo(w / 2, h * 0.36);
+                ctx.lineTo(w / 2, h * 0.96);
+                ctx.stroke();
+                
+                // Center circle
+                ctx.beginPath();
+                ctx.ellipse(w / 2, h * 0.65, 70, 35, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Center circle inner
+                ctx.beginPath();
+                ctx.ellipse(w / 2, h * 0.65, 25, 12, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Team logo area (center court)
+                ctx.fillStyle = 'rgba(227, 66, 96, 0.3)';
+                ctx.beginPath();
+                ctx.ellipse(w / 2, h * 0.65, 50, 25, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // === RIGHT SIDE (HOOP SIDE) ===
+                // Three-point arc
+                ctx.beginPath();
+                ctx.ellipse(w - 30, h * 0.65, 200, 100, 0, Math.PI * 0.55, Math.PI * 1.45);
+                ctx.stroke();
+                
+                // Three-point straight lines
+                ctx.beginPath();
+                ctx.moveTo(w - 30, h * 0.36);
+                ctx.lineTo(w - 30, h * 0.42);
+                ctx.moveTo(w - 30, h * 0.88);
+                ctx.lineTo(w - 30, h * 0.96);
+                ctx.stroke();
+                
+                // Key/Paint area
+                ctx.fillStyle = 'rgba(67, 97, 238, 0.25)';
+                ctx.fillRect(w - 190, h * 0.42, 170, h * 0.46);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(w - 190, h * 0.42, 170, h * 0.46);
+                
+                // Free throw circle
+                ctx.beginPath();
+                ctx.ellipse(w - 190, h * 0.65, 60, 30, 0, Math.PI * 0.5, Math.PI * 1.5);
+                ctx.stroke();
+                ctx.setLineDash([8, 8]);
+                ctx.beginPath();
+                ctx.ellipse(w - 190, h * 0.65, 60, 30, 0, Math.PI * 1.5, Math.PI * 0.5);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Restricted area arc
+                ctx.beginPath();
+                ctx.ellipse(w - 30, h * 0.65, 45, 22, 0, Math.PI * 0.55, Math.PI * 1.45);
+                ctx.stroke();
+                
+                // === LEFT SIDE (OPPOSITE HOOP) ===
+                // Three-point arc
+                ctx.beginPath();
+                ctx.ellipse(30, h * 0.65, 200, 100, 0, -Math.PI * 0.45, Math.PI * 0.45);
+                ctx.stroke();
+                
+                // Key/Paint area
+                ctx.fillStyle = 'rgba(67, 97, 238, 0.25)';
+                ctx.fillRect(20, h * 0.42, 170, h * 0.46);
+                ctx.strokeStyle = '#fff';
+                ctx.strokeRect(20, h * 0.42, 170, h * 0.46);
+                
+                // Free throw circle
+                ctx.beginPath();
+                ctx.ellipse(190, h * 0.65, 60, 30, 0, -Math.PI * 0.5, Math.PI * 0.5);
+                ctx.stroke();
+                ctx.setLineDash([8, 8]);
+                ctx.beginPath();
+                ctx.ellipse(190, h * 0.65, 60, 30, 0, Math.PI * 0.5, -Math.PI * 0.5);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Sideline text
+                ctx.save();
+                ctx.font = 'bold 24px Arial';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.textAlign = 'center';
+                ctx.fillText('MATH HOOPS', w / 2, h * 0.95);
+                ctx.restore();
+            }
+            
+            // Draw bleacher structure
+            drawBleachers(ctx, w, h) {
+                // Bleacher rows (tiered seating)
+                const bleacherTop = h * 0.02;
+                const bleacherBottom = h * 0.32;
+                const rows = 5;
+                
+                for (let i = 0; i < rows; i++) {
+                    const rowY = bleacherTop + (i / rows) * (bleacherBottom - bleacherTop);
+                    const rowHeight = (bleacherBottom - bleacherTop) / rows;
+                    const perspectiveScale = 0.85 + (i / rows) * 0.15;
+                    const rowWidth = w * perspectiveScale;
+                    const rowX = (w - rowWidth) / 2;
+                    
+                    // Bleacher seat row
+                    const seatGrad = ctx.createLinearGradient(0, rowY, 0, rowY + rowHeight);
+                    seatGrad.addColorStop(0, '#4a4a6a');
+                    seatGrad.addColorStop(0.3, '#3a3a5a');
+                    seatGrad.addColorStop(1, '#2a2a4a');
+                    
+                    ctx.fillStyle = seatGrad;
+                    ctx.fillRect(rowX, rowY, rowWidth, rowHeight);
+                    
+                    // Row divider line
+                    ctx.strokeStyle = '#5a5a7a';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(rowX, rowY + rowHeight);
+                    ctx.lineTo(rowX + rowWidth, rowY + rowHeight);
+                    ctx.stroke();
+                }
+                
+                // Railing/barrier at front of bleachers
+                ctx.fillStyle = '#2c3e50';
+                ctx.fillRect(0, bleacherBottom - 8, w, 10);
+                
+                // Railing highlight
+                ctx.fillStyle = '#34495e';
+                ctx.fillRect(0, bleacherBottom - 8, w, 3);
+            }
+            
+            // Draw animated fans
+            drawFans(ctx) {
+                const cheering = this.cheerTimer > 0;
+                const time = performance.now() / 150;
+                
+                for (const fan of this.fans) {
+                    ctx.save();
+                    
+                    let yOffset = 0;
+                    let armRaise = 0;
+                    
+                    if (cheering) {
+                        // Jumping animation
+                        yOffset = Math.abs(Math.sin(time + fan.phase)) * 8;
+                        // Arm waving
+                        armRaise = Math.sin(time * 2 + fan.phase) * 0.5 + 0.5;
+                    }
+                    
+                    const x = fan.x;
+                    const y = fan.y - yOffset;
+                    
+                    // Body/shirt
+                    ctx.fillStyle = fan.color;
+                    ctx.beginPath();
+                    ctx.ellipse(x, y + 8, 6, 8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Head
+                    ctx.fillStyle = fan.skinTone;
+                    ctx.beginPath();
+                    ctx.arc(x, y - 2, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Arms (raised when cheering)
+                    ctx.strokeStyle = fan.skinTone;
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+                    
+                    if (cheering) {
+                        // Left arm raised
+                        ctx.beginPath();
+                        ctx.moveTo(x - 5, y + 4);
+                        ctx.lineTo(x - 8, y - 6 - armRaise * 8);
+                        ctx.stroke();
+                        
+                        // Right arm raised
+                        ctx.beginPath();
+                        ctx.moveTo(x + 5, y + 4);
+                        ctx.lineTo(x + 8, y - 6 - armRaise * 8);
+                        ctx.stroke();
+                    } else {
+                        // Arms down
+                        ctx.beginPath();
+                        ctx.moveTo(x - 5, y + 4);
+                        ctx.lineTo(x - 7, y + 10);
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(x + 5, y + 4);
+                        ctx.lineTo(x + 7, y + 10);
+                        ctx.stroke();
+                    }
+                    
+                    // Sign (some fans have signs)
+                    if (fan.hasSign && cheering) {
+                        ctx.fillStyle = fan.signColor;
+                        ctx.fillRect(x - 10, y - 20 - armRaise * 10, 20, 12);
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '6px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('GO!', x, y - 12 - armRaise * 10);
+                    }
+                    
+                    ctx.restore();
                 }
             }
             
@@ -3052,6 +3336,9 @@
                 this.audio.playSwish();
                 this.audio.playCrowd();
                 
+                // Trigger fan cheering animation
+                this.renderer.triggerCheer();
+                
                 // Update streak
                 this.streak++;
                 if (this.streak >= 3) {
@@ -3237,6 +3524,9 @@
             
             render(alpha) {
                 this.renderer.clear();
+                
+                // Update cheer animation timer
+                this.renderer.updateCheer(CONFIG.FIXED_TIMESTEP);
                 
                 // Always draw court and hoop
                 this.renderer.drawCourt();
