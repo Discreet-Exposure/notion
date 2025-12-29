@@ -3630,14 +3630,23 @@
                     case 'aiBlock':
                         // AI tried to block player's shot
                         if (correct) {
-                            // Player answered correctly - shot continues with original outcome
-                            // shotWillScore was set in takeShot based on timing
+                            // Player answered correctly - but shot outcome depends on TIMING
+                            // If timing was poor (outside the marked zone), shot MUST miss
                             this.lastAnswerCorrect = true;
                             this.audio.playCorrect();
+                            
+                            // Enforce: poor timing = always miss, even with correct answer
+                            if (!this.perfectShot && !this.goodShot) {
+                                // Timing was outside the zone - shot misses
+                                this.shotWillScore = false;
+                                console.log('Correct answer but POOR timing - shot will miss');
+                            } else {
+                                // Timing was in zone - use the pre-calculated outcome
+                                console.log('Correct answer with good timing - willScore:', this.shotWillScore);
+                            }
                             this.ballInFlight = true;
-                            console.log('Correct answer - shot continues with willScore:', this.shotWillScore);
                         } else {
-                            // Player failed - shot blocked, AI gets the ball
+                            // Player failed math - shot blocked, AI gets the ball
                             this.lastAnswerCorrect = false;
                             this.audio.playWrong();
                             this.ballInFlight = false;
