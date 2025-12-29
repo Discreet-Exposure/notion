@@ -284,13 +284,13 @@
         
         #sweetSpot {
             position: absolute;
-            left: -8px;
-            right: -8px;
-            height: 30px;
+            left: -6px;
+            right: -6px;
+            height: 16px;
             background: rgba(0, 255, 0, 0.4);
-            border: 3px solid #0f0;
-            border-radius: 4px;
-            box-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
+            border: 2px solid #0f0;
+            border-radius: 3px;
+            box-shadow: 0 0 8px #0f0, 0 0 16px #0f0;
             z-index: 10;
             pointer-events: none;
         }
@@ -614,7 +614,7 @@
             CONTEST_TIME_LIMIT: 25,
             STREAK_FOR_FIRE: 3,
             TURBO_MULTIPLIER: 1.5,
-            BLOCK_RANGE: 80,          // Distance for blocking
+            BLOCK_RANGE: 120,         // Distance for blocking (larger = more blocks)
             STEAL_RANGE: 50,          // Distance for stealing attempt
             PICKUP_RANGE: 40          // Distance to pick up loose ball
         };
@@ -1774,16 +1774,17 @@
                 const transform = aiPlayer.getComponent(Transform);
                 const playerT = game.player.getComponent(Transform);
                 
-                // Dynamic defense position based on player location
-                const defenseX = Math.min(550, playerT.x + 80);
-                const defenseY = Utils.clamp(playerT.y, CONFIG.COURT_HEIGHT * 0.45, CONFIG.COURT_HEIGHT - 80);
+                // Aggressive defense - stay close to player to block shots
+                // Position between player and hoop, but close enough to contest
+                const defenseX = Math.min(550, playerT.x + 50); // Stay closer (was 80)
+                const defenseY = Utils.clamp(playerT.y, CONFIG.COURT_HEIGHT * 0.42, CONFIG.COURT_HEIGHT - 70);
                 
                 const dx = defenseX - transform.x;
                 const dy = defenseY - transform.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
-                if (dist > 10) {
-                    const speed = 2.5;
+                if (dist > 5) {
+                    const speed = 3.5; // Faster movement (was 2.5)
                     transform.x += (dx / dist) * speed;
                     transform.y += (dy / dist) * speed;
                 }
@@ -2727,7 +2728,7 @@
                     // Position sweet spot zone (centered on optimal power)
                     const meterHeight = 150; // matches CSS
                     const spotPosition = optimalPower * meterHeight;
-                    const spotHeight = 30; // matches CSS
+                    const spotHeight = 16; // matches CSS
                     sweetSpot.style.bottom = `${spotPosition - spotHeight / 2}px`;
                     sweetSpot.style.display = 'block';
                 } else {
@@ -3280,14 +3281,14 @@
                 const normalizedDist = Utils.clamp((dist - minDist) / (maxDist - minDist), 0, 1);
                 const optimalPower = 0.45 + normalizedDist * 0.45;
                 
-                // VERY forgiving accuracy check
-                // Within 20% = perfect (always goes in)
-                // Within 40% = good (80% chance)
-                // Beyond 40% = okay (50% chance)
+                // Shot accuracy check
+                // Within 10% = perfect (always goes in)
+                // Within 25% = good (60% chance)
+                // Beyond 25% = poor (25% chance)
                 const powerError = Math.abs(power - optimalPower);
                 
-                this.perfectShot = powerError <= 0.20;
-                this.goodShot = powerError <= 0.40;
+                this.perfectShot = powerError <= 0.10;
+                this.goodShot = powerError <= 0.25;
                 this.shotPower = power;
                 
                 // Determine if shot will go in based on accuracy
@@ -3295,9 +3296,9 @@
                 if (this.perfectShot) {
                     willScore = true; // Perfect shots always go in
                 } else if (this.goodShot) {
-                    willScore = Math.random() < 0.80; // 80% chance
+                    willScore = Math.random() < 0.60; // 60% chance
                 } else {
-                    willScore = Math.random() < 0.50; // 50% chance
+                    willScore = Math.random() < 0.25; // 25% chance
                 }
                 
                 this.shotWillScore = willScore;
